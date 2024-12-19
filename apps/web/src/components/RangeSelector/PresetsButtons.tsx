@@ -32,9 +32,10 @@ export default function PresetsButtons({
   onSetSafeRange,
   onSetCommonRange,
   onSetExpertRange,
-}: PresetsButtonsProps) {
+  fullWidth,
+}: PresetsButtonsProps & { fullWidth?: boolean }) {
   return (
-    <AutoRow gap="4px" width="70%">
+    <AutoRow gap="4px" width={fullWidth ? '100%' : '70%'}>
       <Button data-testid="set-full-range" onClick={onSetFullRange}>
         <ThemedText.DeprecatedBody fontSize={12}>
           <Trans>Full</Trans>
