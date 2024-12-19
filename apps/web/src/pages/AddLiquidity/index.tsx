@@ -51,7 +51,7 @@ import LiquidityChartRangeInput from '../../components/LiquidityChartRangeInput'
 import { AddRemoveTabs } from '../../components/NavigationTabs'
 import { PositionPreview } from '../../components/PositionPreview'
 import RangeSelector from '../../components/RangeSelector'
-import PresetsButtons from '../../components/RangeSelector/PresetsButtons'
+import PresetsButtons, { PresetType } from '../../components/RangeSelector/PresetsButtons'
 import RateToggle from '../../components/RateToggle'
 import Row, { RowBetween, RowFixed } from '../../components/Row'
 import { SwitchLocaleLink } from '../../components/SwitchLocaleLink'
@@ -79,12 +79,6 @@ import { Dots } from '../Pool/styled'
 import { Review } from './Review'
 import { DynamicSection, MediumOnly, ResponsiveTwoColumns, ScrollablePage, StyledInput, Wrapper } from './styled'
 
-enum PresetType {
-  FULL,
-  SAFE,
-  COMMON,
-  EXPERT,
-}
 function calculatePresetTickRange(type: PresetType, token0Symbol: string, token1Symbol: string, feeAmount: number) {
   if (type == PresetType.FULL) {
     throw new Error('invalid PresetType')
