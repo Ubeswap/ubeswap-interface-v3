@@ -20,6 +20,13 @@ interface PresetsButtonsProps {
   onSetExpertRange: () => void
 }
 
+export enum PresetType {
+  FULL,
+  SAFE,
+  COMMON,
+  EXPERT,
+}
+
 export default function PresetsButtons({
   onSetFullRange,
   onSetSafeRange,
