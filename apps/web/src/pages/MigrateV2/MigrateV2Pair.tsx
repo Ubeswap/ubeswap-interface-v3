@@ -441,6 +441,17 @@ function V2PairMigration({
         onLeftRangeInput(lower.toSignificant(5, undefined, Rounding.ROUND_UP))
         onRightRangeInput(upper.toSignificant(5, undefined, Rounding.ROUND_UP))
         setSearchParams(searchParams)
+      } else {
+        // TODO Add fee
+        const spotPrice = invertPrice ? v2SpotPrice.invert().toSignificant(6) : v2SpotPrice.toSignificant(6)
+        const margin = type === PresetType.SAFE ? 100 : type === PresetType.COMMON ? 50 : 10
+        const lower = String(+spotPrice - (+spotPrice * margin) / 100)
+        const upper = String(+spotPrice + (+spotPrice * margin) / 100)
+        searchParams.set('minPrice', lower)
+        searchParams.set('maxPrice', upper)
+        onLeftRangeInput(lower)
+        onRightRangeInput(upper)
+        setSearchParams(searchParams)
       }
     },
     [pool, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput]
