@@ -69,6 +69,8 @@ export const getIsMetaMaskWallet = () => getDeprecatedInjection()?.name === 'Met
 
 export const getIsCoinbaseWallet = () => Boolean(window.ethereum?.isCoinbaseWallet)
 
+export const getIsCeloExtensionWallet = () => Boolean(((window as Window) && { celo: Object }).celo)
+
 // https://eips.ethereum.org/EIPS/eip-1193#provider-errors
 export enum ErrorCode {
   USER_REJECTED_REQUEST = 4001,
