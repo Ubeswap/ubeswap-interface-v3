@@ -7,6 +7,7 @@ import { Network } from '@web3-react/network'
 import { Actions, Connector } from '@web3-react/types'
 import GNOSIS_ICON from 'assets/images/gnosis.png'
 import UNISWAP_LOGO from 'assets/svg/logo.svg'
+import CELO_EXTENSION_WALLET_ICON from 'assets/wallets/celo-extension-wallet-icon.png'
 import COINBASE_ICON from 'assets/wallets/coinbase-icon.svg'
 import UNIWALLET_ICON from 'assets/wallets/uniswap-wallet-icon.png'
 import VALORA_ICON from 'assets/wallets/valora-icon.png'
@@ -19,8 +20,15 @@ import { APP_RPC_URLS } from '../constants/networks'
 import { RPC_PROVIDERS } from '../constants/providers'
 import { EIP6963 } from './eip6963'
 import { Connection, ConnectionType, ProviderInfo } from './types'
-import { getDeprecatedInjection, getIsCoinbaseWallet, getIsInjected, getIsMetaMaskWallet } from './utils'
+import {
+  getDeprecatedInjection,
+  getIsCeloExtensionWallet,
+  getIsCoinbaseWallet,
+  getIsInjected,
+  getIsMetaMaskWallet,
+} from './utils'
 import { UniwalletConnect as UniwalletWCV2Connect, ValoraConnect, WalletConnectV2 } from './WalletConnectV2'
+import { CeloExtensionWallet } from './injectors/celoExtensionWalletConnector'
 
 function onError(error: Error) {
   console.debug(`web3-react error: ${error}`)
@@ -79,6 +87,21 @@ const getShouldAdvertiseMetaMask = () =>
 const getIsGenericInjector = () => getIsInjected() && !getIsMetaMaskWallet() && !getIsCoinbaseWallet()
 
 const [web3Injected, web3InjectedHooks] = initializeConnector<MetaMask>((actions) => new MetaMask({ actions, onError }))
+const [celoConnector, celoHooks] = initializeConnector<CeloExtensionWallet>(
+  (actions) => new CeloExtensionWallet({ actions, onError })
+)
+
+export const celoExtensionWalletConnection: Connection = {
+  getProviderInfo: () => ({ name: 'Celo Extension Wallet', icon: CELO_EXTENSION_WALLET_ICON }),
+  connector: celoConnector,
+  hooks: celoHooks,
+  type: ConnectionType.CELO_EXTENSION_WALLET,
+  // TODO Mobile
+  shouldDisplay: () => getIsCeloExtensionWallet(),
+  overrideActivate: () => {
+    return false
+  },
+}
 
 export const deprecatedInjectedConnection: Connection = {
   getProviderInfo: (isDarkMode: boolean) => getDeprecatedInjection(isDarkMode) ?? { name: t`Browser Wallet` },
@@ -226,6 +249,7 @@ export const connections = [
   gnosisSafeConnection,
   // uniwalletWCV2ConnectConnection,
   deprecatedInjectedConnection,
+  celoExtensionWalletConnection,
   valoraConnectConnection,
   walletConnectV2Connection,
   coinbaseWalletConnection,
@@ -247,6 +271,8 @@ export function getConnection(c: Connector | ConnectionType) {
         return deprecatedInjectedConnection
       case ConnectionType.COINBASE_WALLET:
         return coinbaseWalletConnection
+      case ConnectionType.CELO_EXTENSION_WALLET:
+        return celoExtensionWalletConnection
       case ConnectionType.WALLET_CONNECT_V2:
         return walletConnectV2Connection
       case ConnectionType.UNISWAP_WALLET_V2:
