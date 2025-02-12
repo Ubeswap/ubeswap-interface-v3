@@ -92,13 +92,19 @@ const [celoConnector, celoHooks] = initializeConnector<CeloExtensionWallet>(
 )
 
 export const celoExtensionWalletConnection: Connection = {
-  getProviderInfo: () => ({ name: 'Celo Extension Wallet', icon: CELO_EXTENSION_WALLET_ICON }),
+  getProviderInfo: () => ({
+    name: getIsCeloExtensionWallet() ? 'Celo Extension Wallet' : 'Install Celo Extension Wallet',
+    icon: CELO_EXTENSION_WALLET_ICON,
+  }),
   connector: celoConnector,
   hooks: celoHooks,
   type: ConnectionType.CELO_EXTENSION_WALLET,
-  // TODO Mobile
-  shouldDisplay: () => getIsCeloExtensionWallet(),
+  shouldDisplay: () => true,
   overrideActivate: () => {
+    if (!getIsCeloExtensionWallet()) {
+      window.open('https://chromewebstore.google.com/detail/celoextensionwallet/kkilomkmpmkbdnfelcpgckmpcaemjcdh')
+      return true
+    }
     return false
   },
 }
