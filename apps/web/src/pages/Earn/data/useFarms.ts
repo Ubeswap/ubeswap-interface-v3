@@ -61,6 +61,17 @@ export interface TableFarm {
   incentiveIds: string[]
 }
 
+export interface FetchedFarm {
+  contractAddress: string
+  poolAddress: string
+  token0: string
+  token1: string
+  apr: number
+  tvl: number
+  protocolVersion: number
+  rewardTokens: string[]
+}
+
 export enum FarmSortFields {
   TVL = 'TVL',
   APR = 'APR',
@@ -335,15 +346,70 @@ export function useV3Farms(): TableFarm[] {
   return farms
 }
 
+// React Hook "useV3Farms" cannot be called inside a callback.
+// React Hooks must be called in a React function component or a custom React Hook function  react-hooks/rules-of-hooks
+const getV3Farms = useV3Farms
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
-  const v3Farms = useV3Farms()
-  const loading = v3Farms.length == 0
+  const [v3Farms, setV3Farms] = useState<TableFarm[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const url = 'https://interface-gateway.ubeswap.org/v1/graphql'
+  const tokens = useDefaultActiveTokens(ChainId.CELO)
+
+  const body = {
+    operationName: 'Farms',
+    query: '',
+    variables: {},
+  }
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+    .then((resp) => {
+      if (!resp.ok) {
+        throw new Error(`HTTP error! Status: ${resp.status}`)
+      }
+      return resp.json()
+    })
+    .then((data: FetchedFarm[]) => {
+      const farms = data.map((fetchedFarm) => {
+        return {
+          ...fetchedFarm,
+          hash: `fetchedFarm.poolAddress-v${fetchedFarm.protocolVersion}`,
+          // NOTE Not needed since v2 farms are inactive
+          farmAddress: '',
+          // Copied from above
+          token0: tokens[fetchedFarm.token0],
+          token1: tokens[fetchedFarm.token1],
+          apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
+          feeTier: 100,
+          incentiveIds: ['0x82774b5b1443759f20679a61497abf11115a4d0e2076caedf9d700a8c53f286f'],
+          token0Amount: new Fraction(0),
+          token1Amount: new Fraction(0),
+          protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
+        }
+      })
+      setV3Farms(farms)
+    })
+    .catch((error) => {
+      console.error('Error:', error)
+      setV3Farms(getV3Farms())
+    })
+    .finally(() => {
+      setLoading(false)
+    })
 
   const unfilteredPools = useMemo(() => {
     return sortFarms(v3Farms, sortState)
   }, [sortState, v3Farms])
 
   const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
+
   return { farms: filteredFarms, loading }
 }
