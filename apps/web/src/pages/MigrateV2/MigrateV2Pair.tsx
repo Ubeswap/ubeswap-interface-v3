@@ -1,8 +1,8 @@
 import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { LiquidityEventName, LiquiditySource } from '@ubeswap/analytics-events'
-import { CurrencyAmount, Fraction, Percent, Price, Token, V2_FACTORY_ADDRESSES } from '@ubeswap/sdk-core'
-import { FeeAmount, Pool, Position, TickMath, priceToClosestTick } from '@uniswap/v3-sdk'
+import { CurrencyAmount, Fraction, Percent, Price, Rounding, Token, V2_FACTORY_ADDRESSES } from '@ubeswap/sdk-core'
+import { FeeAmount, Pool, Position, TickMath, priceToClosestTick, tickToPrice } from '@uniswap/v3-sdk'
 import { useWeb3React } from '@web3-react/core'
 import { sendAnalyticsEvent, useTrace } from 'analytics'
 import Badge from 'components/Badge'
@@ -25,7 +25,7 @@ import JSBI from 'jsbi'
 import { NEVER_RELOAD, useSingleCallResult } from 'lib/hooks/multicall'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, AlertTriangle, ArrowDown } from 'react-feather'
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { Text } from 'rebass'
 import { useAppDispatch } from 'state/hooks'
 import { Bound, resetMintState } from 'state/mint/v3/actions'
@@ -35,6 +35,7 @@ import { useUserSlippageToleranceWithDefault } from 'state/user/hooks'
 import { useTheme } from 'styled-components'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { unwrappedToken } from 'utils/unwrappedToken'
+import PresetsButtons, { PresetType } from 'components/RangeSelector/PresetsButtons'
 
 import { isAddress } from 'utilities/src/addresses'
 import { MigrateHeader } from '.'
@@ -54,6 +55,32 @@ import { calculateGasMargin } from '../../utils/calculateGasMargin'
 import { currencyId } from '../../utils/currencyId'
 import { ExplorerDataType, getExplorerLink } from '../../utils/getExplorerLink'
 import { BodyWrapper } from '../AppBody'
+
+function calculatePresetTickRange(type: PresetType, token0Symbol: string, token1Symbol: string, feeAmount: number) {
+  if (type == PresetType.FULL) {
+    throw new Error('invalid PresetType')
+  }
+  const stableUsdSymbols = ['USDT', 'USDC', 'cUSD', 'CUSD', 'USDGLO', 'mcUSD']
+  const isBothStable = stableUsdSymbols.includes(token0Symbol) && stableUsdSymbols.includes(token1Symbol)
+  if (isBothStable) {
+    switch (type) {
+      case PresetType.SAFE:
+        return feeAmount == 100 ? 300 : 600
+      case PresetType.COMMON:
+        return feeAmount == 100 ? 150 : 600
+      case PresetType.EXPERT:
+        return feeAmount == 100 ? 100 : 600
+    }
+  }
+  switch (type) {
+    case PresetType.SAFE:
+      return 9000
+    case PresetType.COMMON:
+      return feeAmount == 100 ? 4000 : 4200
+    case PresetType.EXPERT:
+      return feeAmount == 100 ? 1000 : 1200
+  }
+}
 
 const ZERO = JSBI.BigInt(0)
 
@@ -183,24 +210,22 @@ function V2PairMigration({
 
   // the following is a small hack to get access to price range data/input handlers
   const [baseToken, setBaseToken] = useState(token0)
-  const { ticks, pricesAtTicks, invertPrice, invalidRange, outOfRange, ticksAtLimit } = useV3DerivedMintInfo(
-    token0,
-    token1,
-    feeAmount,
-    baseToken
-  )
+  const { ticks, pricesAtTicks, invertPrice, invalidRange, outOfRange, ticksAtLimit, pricesAtLimit } =
+    useV3DerivedMintInfo(token0, token1, feeAmount, baseToken)
 
   // get value and prices at ticks
   const { [Bound.LOWER]: tickLower, [Bound.UPPER]: tickUpper } = ticks
   const { [Bound.LOWER]: priceLower, [Bound.UPPER]: priceUpper } = pricesAtTicks
 
-  const { getDecrementLower, getIncrementLower, getDecrementUpper, getIncrementUpper } = useRangeHopCallbacks(
-    baseToken,
-    baseToken.equals(token0) ? token1 : token0,
-    feeAmount,
-    tickLower,
-    tickUpper
-  )
+  const { getDecrementLower, getIncrementLower, getDecrementUpper, getIncrementUpper, getSetFullRange } =
+    useRangeHopCallbacks(
+      baseToken ?? undefined,
+      baseToken.equals(token0) ? token1 : token0 ?? undefined,
+      feeAmount,
+      tickLower,
+      tickUpper,
+      pool
+    )
 
   const { onLeftRangeInput, onRightRangeInput } = useV3MintActionHandlers(noLiquidity)
 
@@ -386,7 +411,73 @@ function V2PairMigration({
     addTransaction,
   ])
 
+  const [baseCurrency, setBaseCurrency] = useState(invertPrice ? currency1 : currency0)
+  const [quoteCurrency, setQuoteCurrency] = useState(invertPrice ? currency0 : currency1)
+
+  useEffect(() => {
+    setBaseCurrency(invertPrice ? currency1 : currency0)
+    setQuoteCurrency(invertPrice ? currency0 : currency1)
+  }, [invertPrice, currency0, currency1])
+
   const isSuccessfullyMigrated = !!pendingMigrationHash && JSBI.equal(pairBalance.quotient, ZERO)
+
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const calculatePriceRange = useCallback(
+    (type: PresetType) => {
+      if (pool && currency1 && currency0) {
+        const current = pool.tickCurrent
+        const baseToken = baseCurrency.wrapped
+        const quoteToken = quoteCurrency.wrapped
+        const tickRange = calculatePresetTickRange(type, baseToken.symbol!, quoteToken.symbol!, pool.fee)
+        let lower = tickToPrice(baseToken, quoteToken, current - tickRange)
+        let upper = tickToPrice(baseToken, quoteToken, current + tickRange)
+        if (baseCurrency.symbol == pool.token1.symbol) {
+          lower = tickToPrice(baseToken, quoteToken, current + tickRange)
+          upper = tickToPrice(baseToken, quoteToken, current - tickRange)
+        }
+        searchParams.set('minPrice', lower.toSignificant(5, undefined, Rounding.ROUND_UP))
+        searchParams.set('maxPrice', upper.toSignificant(5, undefined, Rounding.ROUND_UP))
+        onLeftRangeInput(lower.toSignificant(5, undefined, Rounding.ROUND_UP))
+        onRightRangeInput(upper.toSignificant(5, undefined, Rounding.ROUND_UP))
+        setSearchParams(searchParams)
+      } else {
+        // TODO Add fee
+        const spotPrice = invertPrice ? v2SpotPrice.invert().toSignificant(6) : v2SpotPrice.toSignificant(6)
+        const margin = type === PresetType.SAFE ? 100 : type === PresetType.COMMON ? 50 : 10
+        const lower = String(+spotPrice - (+spotPrice * margin) / 100)
+        const upper = String(+spotPrice + (+spotPrice * margin) / 100)
+        searchParams.set('minPrice', lower)
+        searchParams.set('maxPrice', upper)
+        onLeftRangeInput(lower)
+        onRightRangeInput(upper)
+        setSearchParams(searchParams)
+      }
+    },
+    [pool, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput]
+  )
+
+  const handleSetSafeRange = useCallback(() => {
+    calculatePriceRange(PresetType.SAFE)
+  }, [calculatePriceRange])
+
+  const handleSetCommonRange = useCallback(() => {
+    calculatePriceRange(PresetType.COMMON)
+  }, [calculatePriceRange])
+
+  const handleSetExpertRange = useCallback(() => {
+    calculatePriceRange(PresetType.EXPERT)
+  }, [calculatePriceRange])
+
+  const handleSetFullRange = useCallback(() => {
+    getSetFullRange()
+
+    const minPrice = pricesAtLimit[Bound.LOWER]
+    if (minPrice) searchParams.set('minPrice', minPrice.toSignificant(5))
+    const maxPrice = pricesAtLimit[Bound.UPPER]
+    if (maxPrice) searchParams.set('maxPrice', maxPrice.toSignificant(5))
+    setSearchParams(searchParams)
+  }, [getSetFullRange, pricesAtLimit, searchParams, setSearchParams])
 
   if (!networkSupportsV2) return <V2Unsupported />
 
@@ -555,6 +646,13 @@ function V2PairMigration({
               }}
             />
           </RowBetween>
+          <PresetsButtons
+            fullWidth
+            onSetFullRange={handleSetFullRange}
+            onSetSafeRange={handleSetSafeRange}
+            onSetCommonRange={handleSetCommonRange}
+            onSetExpertRange={handleSetExpertRange}
+          />
 
           <RangeSelector
             priceLower={priceLower}
