@@ -28,7 +28,6 @@ export function sortFarms(pools: TableFarm[], sortState: FarmTableSortState) {
             return 1
           }
         }
-
         return sortState.sortDirection === OrderDirection.Desc
           ? b.apr.greaterThan(a.apr)
             ? 1
@@ -43,8 +42,6 @@ export function sortFarms(pools: TableFarm[], sortState: FarmTableSortState) {
     }
   })
 }
-
-export const V2_BIPS = 3000
 
 export interface TableFarm {
   hash: string
@@ -61,6 +58,17 @@ export interface TableFarm {
   incentiveIds: string[]
 }
 
+export interface FetchedFarm {
+  contractAddress: string
+  poolAddress: string
+  token0: string
+  token1: string
+  apr: number
+  tvl: number
+  protocolVersion: number
+  rewardTokens: string[]
+}
+
 export enum FarmSortFields {
   TVL = 'TVL',
   APR = 'APR',
@@ -73,7 +81,6 @@ export type FarmTableSortState = {
 
 function useFilteredFarms(pools: TableFarm[]) {
   const filterString = useAtomValue(exploreSearchStringAtom)
-
   const lowercaseFilterString = useMemo(() => filterString.toLowerCase(), [filterString])
 
   return useMemo(
@@ -136,13 +143,88 @@ export function useInactiveFarms(sortState: FarmTableSortState, chainId?: ChainI
           return []
         })
         .flat() ?? []
-
     const rt = sortFarms([...fff], sortState)
     return rt
   }, [farms, tokens, sortState])
 
   const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
   return { farms: filteredFarms, loading }
+}
+
+async function fetchFarms(): Promise<FetchedFarm[] | undefined> {
+  try {
+    const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        operationName: 'Farms',
+        variables: {},
+        query: '',
+      }),
+    })
+    const data = await res.json()
+    return data
+  } catch (e) {
+    console.error('Error fetching farms:', e)
+    return undefined
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
+  const tokens = useDefaultActiveTokens(ChainId.CELO)
+  const v3Farms = useV3Farms()
+
+  const { data: farmsBackend, isLoading } = useQuery({
+    queryKey: ['farms'],
+    queryFn: () => fetchFarms(),
+    staleTime: 30_000,
+  })
+
+  const farms = useMemo(() => {
+    const backendFarms = farmsBackend
+      ? farmsBackend.map(
+          (fetchedFarm) =>
+            ({
+              hash: `${fetchedFarm.poolAddress}-v${fetchedFarm.protocolVersion}`,
+              farmAddress: fetchedFarm.contractAddress,
+              poolAddress: fetchedFarm.poolAddress,
+              token0: tokens[fetchedFarm.token0],
+              token1: tokens[fetchedFarm.token1],
+              token0Amount: new Fraction(0),
+              token1Amount: new Fraction(0),
+              tvl: fetchedFarm.tvl,
+              apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
+              feeTier: 100,
+              protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
+              incentiveIds: ['0x82774b5b1443759f20679a61497abf11115a4d0e2076caedf9d700a8c53f286f'],
+            } as TableFarm)
+        )
+      : []
+
+    // Combine farms and remove duplicates based on hash
+    const allFarms = [...backendFarms, ...v3Farms]
+    const uniqueFarms = allFarms.reduce((acc, current) => {
+      const x = acc.find((item) => item.hash === current.hash)
+      if (!x) {
+        return acc.concat([current])
+      }
+      return acc
+    }, [] as TableFarm[])
+
+    return uniqueFarms
+  }, [farmsBackend, tokens, v3Farms])
+
+  const unfilteredPools = useMemo(() => {
+    return sortFarms([...farms], sortState)
+  }, [farms, sortState])
+
+  const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
+
+  return { farms: filteredFarms, loading: isLoading }
 }
 
 interface Metadata {
@@ -206,7 +288,6 @@ export function useV3IncentiveMetadata(incentiveId: string): Metadata | undefine
     enabled: !!incentiveInfo,
     staleTime: 1000_0000,
   })
-
   return metadata
 }
 
@@ -256,7 +337,6 @@ export function useV3IncentiveFullData(incentiveId: string): IncentiveDataItem[]
     enabled: !!incentiveInfo,
     staleTime: 1000_0000,
   })
-
   return data
 }
 
@@ -276,7 +356,6 @@ function getV3FarmNumbers(metadata: Metadata, nativePrice: number, ubePrice: num
   if (activeTvlNative * nativePrice > 0) {
     apr = new Percent(Math.round(ubeYearlyRewardUsd * 1_000_000), Math.round(activeTvlNative * nativePrice * 1_000_000))
   }
-
   return {
     apr,
     tvl: (activeTvlNative + inactiveTvlNative) * nativePrice,
@@ -331,19 +410,7 @@ export function useV3Farms(): TableFarm[] {
       }
     }
   }, [tokens, metadataUbe, metadataGlo, nativePrice, ubePrice])
-
   return farms
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
-  const v3Farms = useV3Farms()
-  const loading = v3Farms.length == 0
-
-  const unfilteredPools = useMemo(() => {
-    return sortFarms(v3Farms, sortState)
-  }, [sortState, v3Farms])
-
-  const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
-  return { farms: filteredFarms, loading }
-}
+export const V2_BIPS = 3000
