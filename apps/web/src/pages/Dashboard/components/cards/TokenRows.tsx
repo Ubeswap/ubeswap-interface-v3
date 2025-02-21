@@ -157,6 +157,7 @@ type PoolData = {
   type: 'stake' | 'farm'
   contractAddress: string
   stakingToken?: string
+  rewardTokens?: string[]
   token0?: string
   token1?: string
   protocolVersion?: number
@@ -215,11 +216,11 @@ export function GainerTokenRow({
 
 // Top Earners için token satırı bileşeni
 export function EarnerTokenRow({ poolData }: { poolData: PoolData }) {
-  // const screenIsSmall = useScreenSize()['sm']
   const navigate = useNavigate()
   const { formatNumber } = useFormatter()
 
   const stakingToken = useCurrency(poolData.stakingToken, ChainId.CELO)
+  const rewardToken = useCurrency(poolData.rewardTokens ? poolData.rewardTokens[0] : undefined, ChainId.CELO)
   const token0 = useCurrency(poolData.token0, ChainId.CELO)
   const token1 = useCurrency(poolData.token1, ChainId.CELO)
 
@@ -230,10 +231,13 @@ export function EarnerTokenRow({ poolData }: { poolData: PoolData }) {
   }
 
   if (poolData.type === 'stake') {
+    // Token adreslerini wrapped üzerinden karşılaştırıyoruz
+    const showDoubleLogo = stakingToken && rewardToken && stakingToken.wrapped.address !== rewardToken.wrapped.address
+
     return (
       <TokenRow onClick={handleClick}>
         <PortfolioLogo
-          currencies={[stakingToken]}
+          currencies={showDoubleLogo ? [stakingToken, rewardToken] : [stakingToken]}
           chainId={ChainId.CELO}
           size={logoSize}
           style={{ minWidth: logoSize }}
@@ -241,6 +245,9 @@ export function EarnerTokenRow({ poolData }: { poolData: PoolData }) {
         <Box justify="space-between" gap="16px" style={{ width: '100%' }}>
           <Box width="auto" gap="8px" align="center" overflow="hidden">
             <TokenName>{`${stakingToken?.symbol} Stake`}</TokenName>
+            {/* {showDoubleLogo && rewardToken && (
+              <TokenTicker style={{ color: '#2FBA61' }}>{`Earns ${rewardToken.symbol}`}</TokenTicker>
+            )} */}
           </Box>
           <Box width="auto" gap="8px" align="center" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
             <TokenPrice>
@@ -256,6 +263,7 @@ export function EarnerTokenRow({ poolData }: { poolData: PoolData }) {
     )
   }
 
+  // Farm durumu için kod aynı kalıyor
   return (
     <TokenRow onClick={handleClick}>
       <PortfolioLogo
