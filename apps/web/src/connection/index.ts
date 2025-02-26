@@ -18,7 +18,9 @@ import { isMobile, isTouchable, isWebAndroid, isWebIOS } from 'uniswap/src/utils
 
 import { APP_RPC_URLS } from '../constants/networks'
 import { RPC_PROVIDERS } from '../constants/providers'
+import { UniwalletConnect as UniwalletWCV2Connect, ValoraConnect, WalletConnectV2 } from './WalletConnectV2'
 import { EIP6963 } from './eip6963'
+import { CeloExtensionWallet } from './injectors/celoExtensionWalletConnector'
 import { Connection, ConnectionType, ProviderInfo } from './types'
 import {
   getDeprecatedInjection,
@@ -27,8 +29,6 @@ import {
   getIsInjected,
   getIsMetaMaskWallet,
 } from './utils'
-import { UniwalletConnect as UniwalletWCV2Connect, ValoraConnect, WalletConnectV2 } from './WalletConnectV2'
-import { CeloExtensionWallet } from './injectors/celoExtensionWalletConnector'
 
 function onError(error: Error) {
   console.debug(`web3-react error: ${error}`)

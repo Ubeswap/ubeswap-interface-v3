@@ -11,6 +11,7 @@ import { BlueCard, DarkGrayCard, LightCard, YellowCard } from 'components/Card'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import FeeSelector from 'components/FeeSelector'
 import RangeSelector from 'components/RangeSelector'
+import PresetsButtons, { PresetType } from 'components/RangeSelector/PresetsButtons'
 import RateToggle from 'components/RateToggle'
 import SettingsTab from 'components/Settings'
 import { V2Unsupported } from 'components/V2Unsupported'
@@ -35,7 +36,6 @@ import { useUserSlippageToleranceWithDefault } from 'state/user/hooks'
 import { useTheme } from 'styled-components'
 import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { unwrappedToken } from 'utils/unwrappedToken'
-import PresetsButtons, { PresetType } from 'components/RangeSelector/PresetsButtons'
 
 import { isAddress } from 'utilities/src/addresses'
 import { MigrateHeader } from '.'
@@ -454,7 +454,20 @@ function V2PairMigration({
         setSearchParams(searchParams)
       }
     },
-    [pool, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput]
+    [
+      pool,
+      currency1,
+      currency0,
+      baseCurrency.wrapped,
+      baseCurrency.symbol,
+      quoteCurrency.wrapped,
+      searchParams,
+      onLeftRangeInput,
+      onRightRangeInput,
+      setSearchParams,
+      invertPrice,
+      v2SpotPrice,
+    ]
   )
 
   const handleSetSafeRange = useCallback(() => {
