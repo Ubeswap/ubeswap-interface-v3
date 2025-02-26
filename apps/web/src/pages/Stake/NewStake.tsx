@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Fraction } from '@ubeswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
@@ -116,8 +117,10 @@ export const NewStake: React.FC = () => {
   const _totalSupply = useSingleCallResult(contract, 'totalSupply', []).result?.[0] ?? 0
   const totalSupply = ube ? CurrencyAmount.fromRawAmount(ube, _totalSupply) : undefined
 
+  const periodFinish = BigNumber.from(useSingleCallResult(contract, 'periodFinish', []).result?.[0] ?? 0)
+  const isFinished = periodFinish.gt(0) && periodFinish.lt(Math.floor(Date.now() / 1000))
   const _rewardRate = useSingleCallResult(contract, 'rewardRate', []).result?.[0] ?? 0
-  const rewardRate = ube ? CurrencyAmount.fromRawAmount(ube, _rewardRate) : undefined
+  const rewardRate = ube ? CurrencyAmount.fromRawAmount(ube, isFinished ? 0 : _rewardRate) : undefined
 
   const apy =
     rewardRate && totalSupply && totalSupply.greaterThan('0')

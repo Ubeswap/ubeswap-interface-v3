@@ -38,12 +38,18 @@ const StyledPositionCard = styled(LightCard)<{ bgColor: any }>`
 interface StakeCollapseCardProps {
   title: string
   gap?: string
+  openedDefault?: boolean
   children?: React.ReactNode
 }
 
-export default function StakeCollapseCard({ title, gap = '12px', children }: StakeCollapseCardProps) {
+export default function StakeCollapseCard({
+  title,
+  gap = '12px',
+  openedDefault = false,
+  children,
+}: StakeCollapseCardProps) {
   const theme = useTheme()
-  const [showMore, setShowMore] = useState(false)
+  const [showMore, setShowMore] = useState(openedDefault ? true : false)
 
   return (
     <StyledPositionCard bgColor={theme.primary1}>

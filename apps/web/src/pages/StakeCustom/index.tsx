@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { CurrencyAmount, Fraction, Percent } from '@ubeswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { useAccountDrawer } from 'components/AccountDrawer/MiniPortfolio/hooks'
@@ -76,8 +77,10 @@ export const StakeCustom: React.FC = () => {
   const totalSupply = token ? CurrencyAmount.fromRawAmount(token, _totalSupply) : undefined
   const { data: totalSupplyUsd } = useUSDPrice(totalSupply, token)
 
+  const periodFinish = BigNumber.from(useSingleCallResult(contract, 'periodFinish', []).result?.[0] ?? 0)
+  const isFinished = periodFinish.gt(0) && periodFinish.lt(Math.floor(Date.now() / 1000))
   const _rewardRate = useSingleCallResult(contract, 'rewardRate', []).result?.[0] ?? 0
-  const rewardRate = rewardToken ? CurrencyAmount.fromRawAmount(rewardToken, _rewardRate) : undefined
+  const rewardRate = rewardToken ? CurrencyAmount.fromRawAmount(rewardToken, isFinished ? 0 : _rewardRate) : undefined
   const { data: yearlyRewardUsd } = useUSDPrice(rewardRate?.multiply(BIG_INT_SECONDS_IN_YEAR), rewardToken)
 
   const _apy = yearlyRewardUsd && totalSupplyUsd ? (yearlyRewardUsd * 100) / totalSupplyUsd : undefined
@@ -220,55 +223,45 @@ export const StakeCustom: React.FC = () => {
           </Wrapper>
         </BodyWrapper>
 
-        {!(userRewardRate && JSBI.greaterThan(userRewardRate, JSBI.BigInt(0))) && (
-          <Text fontSize={20} fontWeight={500} padding="0px 8px">
-            {t('Your Weekly Rewards') + ' '}
-            {userWeeklyRewards ? userWeeklyRewards.toFixed(0, { groupSeparator: ',' }) : '--'} {rewardToken?.symbol} /
-            week ({apy ? formatPercent(apy) : '- %'} APR)
-          </Text>
-        )}
-
-        {userRewardRate && JSBI.greaterThan(userRewardRate, JSBI.BigInt(0)) && (
-          <StakeCollapseCard title={t('Staking Statistics')} gap="16px">
-            <InformationWrapper>
-              <Text>Total {token?.symbol} Staked</Text>
-              <Text>{Number(totalSupply?.toSignificant(4)).toLocaleString('en-US')}</Text>
-            </InformationWrapper>
-            <InformationWrapper>
-              <Text>Your {token?.symbol} Stake Pool Share</Text>
-              <Text>{stakeBalance?.toSignificant(4)}</Text>
-            </InformationWrapper>
-            <InformationWrapper>
-              <Text>{t('Your Weekly Rewards')}</Text>
-              <Text>
-                {userWeeklyRewards ? userWeeklyRewards.toFixed(4, { groupSeparator: ',' }) : '--'}
-                {'  '}
-              </Text>
-            </InformationWrapper>
-            <InformationWrapper>
-              <Text>{t('Annual Stake APR')}</Text>
-              <Text>{apy ? formatPercent(apy) : '- %'} </Text>
-            </InformationWrapper>
-            <ExternalLink
-              style={{ textDecoration: 'underline', textAlign: 'left' }}
-              target="_blank"
-              href={`https://celoscan.io/address/${tokenAddress}`}
-            >
-              <Text fontSize={14} fontWeight={600}>
-                View {token?.symbol} Contract
-              </Text>
-            </ExternalLink>
-            <ExternalLink
-              style={{ textDecoration: 'underline', textAlign: 'left' }}
-              target="_blank"
-              href={`https://info.ubeswap.org/#/celo/tokens/${tokenAddress}`}
-            >
-              <Text fontSize={14} fontWeight={600}>
-                View {token?.symbol} Chart
-              </Text>
-            </ExternalLink>
-          </StakeCollapseCard>
-        )}
+        <StakeCollapseCard title={t('Staking Statistics')} gap="16px" openedDefault>
+          <InformationWrapper>
+            <Text>Total {token?.symbol} Staked</Text>
+            <Text>{Number(totalSupply?.toSignificant(4)).toLocaleString('en-US')}</Text>
+          </InformationWrapper>
+          <InformationWrapper>
+            <Text>Your {token?.symbol} Stake Pool Share</Text>
+            <Text>{stakeBalance?.toSignificant(4)}</Text>
+          </InformationWrapper>
+          <InformationWrapper>
+            <Text>{t('Your Weekly Rewards')}</Text>
+            <Text>
+              {userWeeklyRewards ? userWeeklyRewards.toFixed(4, { groupSeparator: ',' }) : '--'}
+              {'  '}
+            </Text>
+          </InformationWrapper>
+          <InformationWrapper>
+            <Text>{t('Annual Stake APR')}</Text>
+            <Text>{apy ? formatPercent(apy) : '- %'} </Text>
+          </InformationWrapper>
+          <ExternalLink
+            style={{ textDecoration: 'underline', textAlign: 'left' }}
+            target="_blank"
+            href={`https://celoscan.io/address/${tokenAddress}`}
+          >
+            <Text fontSize={14} fontWeight={600}>
+              View {token?.symbol} Contract
+            </Text>
+          </ExternalLink>
+          <ExternalLink
+            style={{ textDecoration: 'underline', textAlign: 'left' }}
+            target="_blank"
+            href={`https://info.ubeswap.org/#/celo/tokens/${tokenAddress}`}
+          >
+            <Text fontSize={14} fontWeight={600}>
+              View {token?.symbol} Chart
+            </Text>
+          </ExternalLink>
+        </StakeCollapseCard>
       </TopSection>
     </>
   )
