@@ -13,6 +13,14 @@ export interface DashboardData {
   txCount: number
   poolCount: number
   tokenCount: number
+  activeLaunchpads: {
+    launchpadAddress: string
+    tokenAddress: string
+    name?: string
+    apr?: number
+    url: string
+    tokenName: string
+  }[]
   topGainers: {
     tokenAddress: string
     price: number
@@ -23,6 +31,7 @@ export interface DashboardData {
         type: 'stake'
         contractAddress: string
         stakingToken: string
+        rewardTokens?: string[]
         apr: number
         url: string
       }

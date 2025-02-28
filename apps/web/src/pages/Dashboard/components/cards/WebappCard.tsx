@@ -107,7 +107,7 @@ export function WebappCard(props: WebappCardProps) {
     }
 
     if (props.type === 'launch') {
-      return <LaunchpadRow />
+      return <LaunchpadRow launchpads={data.activeLaunchpads} />
     }
 
     return null
