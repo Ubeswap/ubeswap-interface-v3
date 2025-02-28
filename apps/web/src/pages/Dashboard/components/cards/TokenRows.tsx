@@ -1,4 +1,4 @@
-import { ChainId } from '@ubeswap/sdk-core'
+import { ChainId, Token } from '@ubeswap/sdk-core'
 import { PortfolioLogo } from 'components/AccountDrawer/MiniPortfolio/PortfolioLogo'
 import { DeltaArrow } from 'components/Tokens/TokenDetails/Delta'
 import { chainIdToBackendName, getTokenDetailsURL } from 'graphql/data/util'
@@ -296,20 +296,28 @@ function LaunchpadItem({
   launchpad: {
     launchpadAddress: string
     tokenAddress: string
-    name?: string
     apr?: number
-    url: string
     tokenName?: string
+    logoUrl?: string
   }
 }) {
   const navigate = useNavigate()
   const { formatNumber } = useFormatter()
-  const token = useCurrency(launchpad.tokenAddress, ChainId.CELO)
+  const token = new Token(ChainId.CELO, launchpad.tokenAddress, 18, '', launchpad.tokenName)
   const logoSize = '32px'
 
   return (
-    <TokenRow key={launchpad.launchpadAddress} onClick={() => navigate(launchpad.url)}>
-      <PortfolioLogo currencies={[token]} chainId={ChainId.CELO} size={logoSize} style={{ minWidth: logoSize }} />
+    <TokenRow
+      key={launchpad.launchpadAddress}
+      onClick={() => navigate(`/ubestarter/details/${launchpad.launchpadAddress}`)}
+    >
+      <PortfolioLogo
+        images={[launchpad.logoUrl]}
+        currencies={[token]}
+        chainId={ChainId.CELO}
+        size={logoSize}
+        style={{ minWidth: logoSize }}
+      />
       <Box justify="space-between" gap="16px" style={{ width: '100%' }}>
         <Box width="auto" gap="8px" align="center" overflow="hidden">
           <TokenName>{launchpad.tokenName || token?.symbol || 'Unknown Project'}</TokenName>
