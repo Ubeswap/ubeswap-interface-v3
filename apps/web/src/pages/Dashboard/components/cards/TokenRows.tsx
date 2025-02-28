@@ -290,19 +290,90 @@ export function EarnerTokenRow({ poolData }: { poolData: PoolData }) {
   )
 }
 
-export function LaunchpadRow() {
-  // const screenIsSmall = useScreenSize()['sm']
-  const navigate = useNavigate()
-
-  const handleClick = () => {
-    navigate('')
+function LaunchpadItem({
+  launchpad,
+}: {
+  launchpad: {
+    launchpadAddress: string
+    tokenAddress: string
+    name?: string
+    apr?: number
+    url: string
+    tokenName?: string
   }
+}) {
+  const navigate = useNavigate()
+  const { formatNumber } = useFormatter()
+  const token = useCurrency(launchpad.tokenAddress, ChainId.CELO)
+  const logoSize = '32px'
 
   return (
-    <TokenRow onClick={handleClick} style={{ height: '204px' }}>
+    <TokenRow key={launchpad.launchpadAddress} onClick={() => navigate(launchpad.url)}>
+      <PortfolioLogo currencies={[token]} chainId={ChainId.CELO} size={logoSize} style={{ minWidth: logoSize }} />
       <Box justify="space-between" gap="16px" style={{ width: '100%' }}>
-        <TokenName style={{ width: '100%', textAlign: 'center' }}>No Active Projects</TokenName>
+        <Box width="auto" gap="8px" align="center" overflow="hidden">
+          <TokenName>{launchpad.tokenName || token?.symbol || 'Unknown Project'}</TokenName>
+        </Box>
+        {launchpad.apr !== undefined && (
+          <Box width="auto" gap="8px" align="center" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <TokenPrice>
+              {formatNumber({
+                input: launchpad.apr,
+                type: NumberType.TokenNonTx,
+              })}
+              %
+            </TokenPrice>
+          </Box>
+        )}
       </Box>
     </TokenRow>
+  )
+}
+
+// Ana LaunchpadRow bileşeni
+export function LaunchpadRow({
+  launchpads,
+}: {
+  launchpads?: {
+    launchpadAddress: string
+    tokenAddress: string
+    name?: string
+    apr?: number
+    url: string
+  }[]
+}) {
+  // Aktif proje yoksa "No Active Projects" mesajını göster
+  if (!launchpads || launchpads.length === 0) {
+    return (
+      <TokenRow onClick={() => {}} style={{ height: '204px' }}>
+        <Box justify="space-between" gap="16px" style={{ width: '100%' }}>
+          <TokenName style={{ width: '100%', textAlign: 'center' }}>No Active Projects</TokenName>
+        </Box>
+      </TokenRow>
+    )
+  }
+
+  const maxRows = 3
+
+  // Aktif projeleri göster
+  return (
+    <>
+      {launchpads.map((launchpad) => (
+        <LaunchpadItem key={launchpad.launchpadAddress} launchpad={launchpad} />
+      ))}
+
+      {/* Eksik satırlar için boş satırlar ekle */}
+      {launchpads.length < maxRows &&
+        Array.from({ length: maxRows - launchpads.length }).map((_, index) => (
+          <div
+            key={`empty-${index}`}
+            style={{
+              height: '58px', // TokenRow ile aynı yükseklik(neredeyse)
+              width: '100%',
+              margin: '3px 0', // Satırlar arası boşluk
+            }}
+          />
+        ))}
+    </>
   )
 }
