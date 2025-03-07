@@ -216,7 +216,7 @@ export function FarmsTable({
   const sortMethod = useAtomValue(sortMethodAtom)
   const filterString = useAtomValue(exploreSearchStringAtom)
 
-  const poolTableValues: FarmTableValues[] | undefined = useMemo(
+  const poolTableValues: FarmTableValues[] = useMemo(
     () =>
       pools?.map((pool, index) => {
         const poolSortRank = index + 1

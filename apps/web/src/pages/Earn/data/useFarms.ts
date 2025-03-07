@@ -112,7 +112,7 @@ export function useInactiveFarms(sortState: FarmTableSortState, chainId?: ChainI
   const unfilteredPools = useMemo(() => {
     const fff: TableFarm[] =
       farms
-        .map((farm) => {
+        ?.map((farm) => {
           const token0Address = isAddress(farm.token0Address)
           const token1Address = isAddress(farm.token1Address)
           if (token0Address && token1Address) {
@@ -181,24 +181,29 @@ export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId)
   })
 
   const farms = useMemo(() => {
-    const backendFarms = farmsBackend
-      ? farmsBackend.map(
-          (fetchedFarm) =>
-            ({
-              hash: `${fetchedFarm.poolAddress}-v${fetchedFarm.protocolVersion}`,
-              farmAddress: fetchedFarm.contractAddress,
-              poolAddress: fetchedFarm.poolAddress,
-              token0: tokens[fetchedFarm.token0],
-              token1: tokens[fetchedFarm.token1],
-              token0Amount: new Fraction(0),
-              token1Amount: new Fraction(0),
-              tvl: fetchedFarm.tvl,
-              apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
-              feeTier: 100,
-              protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
-            } as TableFarm)
-        )
-      : []
+    const backendFarms =
+      farmsBackend
+        ?.map((fetchedFarm): TableFarm[] => {
+          if (tokens[fetchedFarm.token0] && tokens[fetchedFarm.token1]) {
+            return [
+              {
+                hash: `${fetchedFarm.poolAddress}-v${fetchedFarm.protocolVersion}`,
+                farmAddress: fetchedFarm.contractAddress,
+                poolAddress: fetchedFarm.poolAddress,
+                token0: tokens[fetchedFarm.token0],
+                token1: tokens[fetchedFarm.token1],
+                token0Amount: new Fraction(0),
+                token1Amount: new Fraction(0),
+                tvl: fetchedFarm.tvl,
+                apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
+                feeTier: 100,
+                protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
+              } as TableFarm,
+            ]
+          }
+          return []
+        })
+        .flat() ?? []
 
     // Combine farms and remove duplicates based on hash
     const allFarms = [...backendFarms, ...v3Farms]
@@ -341,34 +346,41 @@ export function useV3Farms(): TableFarm[] {
 
   useEffect(() => {
     try {
-      setFarms([
-        {
-          hash: '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19-v3',
-          farmAddress: '0x13b0a5Bf2589d603BB735c79813ee1AA6C12FB1d',
-          poolAddress: '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19',
-          token0: tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'],
-          token1: tokens['0x71e26d0E519D14591b9dE9a0fE9513A398101490'],
-          token0Amount: new Fraction(0),
-          token1Amount: new Fraction(0),
-          tvl: 0,
-          apr: new Percent(0),
-          feeTier: 100,
-          protocolVersion: ProtocolVersion.V3,
-        },
-        {
-          hash: '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b-v3',
-          farmAddress: '0x13b0a5Bf2589d603BB735c79813ee1AA6C12FB1d',
-          poolAddress: '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b',
-          token0: tokens['0x4F604735c1cF31399C6E711D5962b2B3E0225AD3'],
-          token1: tokens['0xcebA9300f2b948710d2653dD7B07f33A8B32118C'],
-          token0Amount: new Fraction(0),
-          token1Amount: new Fraction(0),
-          tvl: 0,
-          apr: new Percent(0),
-          feeTier: 100,
-          protocolVersion: ProtocolVersion.V3,
-        },
-      ])
+      if (
+        tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'] &&
+        tokens['0x71e26d0E519D14591b9dE9a0fE9513A398101490']
+      ) {
+        setFarms([
+          {
+            hash: '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19-v3',
+            farmAddress: '0x13b0a5Bf2589d603BB735c79813ee1AA6C12FB1d',
+            poolAddress: '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19',
+            token0: tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'],
+            token1: tokens['0x71e26d0E519D14591b9dE9a0fE9513A398101490'],
+            token0Amount: new Fraction(0),
+            token1Amount: new Fraction(0),
+            tvl: 0,
+            apr: new Percent(0),
+            feeTier: 100,
+            protocolVersion: ProtocolVersion.V3,
+          },
+          {
+            hash: '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b-v3',
+            farmAddress: '0x13b0a5Bf2589d603BB735c79813ee1AA6C12FB1d',
+            poolAddress: '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b',
+            token0: tokens['0x4F604735c1cF31399C6E711D5962b2B3E0225AD3'],
+            token1: tokens['0xcebA9300f2b948710d2653dD7B07f33A8B32118C'],
+            token0Amount: new Fraction(0),
+            token1Amount: new Fraction(0),
+            tvl: 0,
+            apr: new Percent(0),
+            feeTier: 100,
+            protocolVersion: ProtocolVersion.V3,
+          },
+        ])
+      } else {
+        setFarms([])
+      }
     } catch (e) {
       console.error(e)
     }
