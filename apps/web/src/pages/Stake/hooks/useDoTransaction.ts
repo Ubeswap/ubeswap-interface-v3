@@ -1,7 +1,8 @@
+import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { CallOverrides, Contract, ContractTransaction, PayableOverrides } from '@ethersproject/contracts'
 import { TransactionRequest } from '@ethersproject/providers'
-import { SUPPORTED_CHAINS } from '@ubeswap/sdk-core'
+import { ChainId, SUPPORTED_CHAINS } from '@ubeswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { useCallback } from 'react'
 import { useTransactionAdder } from 'state/transactions/hooks'
@@ -90,9 +91,22 @@ export const useDoTransaction = (): DoTransactionFn => {
         if (args.raw) {
           response = await signer.sendTransaction(args.raw)
         } else {
-          response = await contract[methodName](...args.args, {
-            gasLimit: calculateGasMargin(gasEstimate),
-            ...args.overrides,
+          const tx = await contract.populateTransaction[methodName](...args.args)
+          const dataSuffix = getDataSuffix({
+            consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
+            providers: [
+              '0x0423189886d7966f0dd7e7d256898daeee625dca',
+              '0x5f0a55fad9424ac99429f635dfb9bf20c3360ab8',
+              '0x6226dde08402642964f9a6de844ea3116f0dfc7e',
+            ],
+          })
+          tx.data = (tx.data ?? '') + dataSuffix
+          tx.gasLimit = calculateGasMargin(gasEstimate)
+          // TODO: args.overrides should be considered
+          response = await contract.signer.sendTransaction(tx)
+          submitReferral({
+            txHash: response.hash as `0x${string}`,
+            chainId: ChainId.CELO,
           })
         }
         addTransaction(response, {

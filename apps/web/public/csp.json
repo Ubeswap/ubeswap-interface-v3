@@ -116,7 +116,8 @@
     "https://ipfs.io",
     "https://gateway-arbitrum.network.thegraph.com",
     "https://rpc.ankr.com",
-    "https://scarlet-bored-roundworm-446.mypinata.cloud"
+    "https://scarlet-bored-roundworm-446.mypinata.cloud",
+    "https://api.divvi.xyz"
   ],
   "workerSrc": [
     "'self'",

@@ -1,6 +1,9 @@
+import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { defaultAbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
+import { Contract } from '@ethersproject/contracts'
 import type { TransactionResponse } from '@ethersproject/providers'
+import { ChainId } from '@ubeswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { useUbeswapV3FarmingContract, useV3NFTPositionManagerContract } from 'hooks/useContract'
 import { useSingleCallResult, useSingleContractMultipleData } from 'lib/hooks/multicall'
@@ -17,6 +20,27 @@ function encodeKeys(keys: IncentiveKey[]) {
   const keyArrayType =
     'tuple(address rewardToken,address pool, uint32 startTime, uint32 lockTime, int24 minimumTickRange, int24 maxTickLower, int24 minTickLower, int24 maxTickUpper, int24 minTickUpper)[]'
   return defaultAbiCoder.encode([keyArrayType], [keys])
+}
+
+async function startTransaction(contract: Contract, funcName: string, args: readonly any[]) {
+  const estimatedGasLimit = await contract.estimateGas[funcName](...args)
+  const tx = await contract.populateTransaction[funcName](...args)
+  const dataSuffix = getDataSuffix({
+    consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
+    providers: [
+      '0x0423189886d7966f0dd7e7d256898daeee625dca',
+      '0x5f0a55fad9424ac99429f635dfb9bf20c3360ab8',
+      '0x6226dde08402642964f9a6de844ea3116f0dfc7e',
+    ],
+  })
+  tx.data = (tx.data ?? '') + dataSuffix
+  tx.gasLimit = calculateGasMargin(estimatedGasLimit)
+  const response: TransactionResponse = await contract.signer.sendTransaction(tx)
+  submitReferral({
+    txHash: response.hash as `0x${string}`,
+    chainId: ChainId.CELO,
+  })
+  return response
 }
 
 export function useDepositCallback(): [
@@ -63,20 +87,17 @@ export function useDepositCallback(): [
 
         const data = encodeKeys(incentives)
 
-        const convertArgs = [account, FARM_ADDRESS, tokenId.toString(), data] as const
+        const args = [account, FARM_ADDRESS, tokenId.toString(), data] as const
         const functionName = 'safeTransferFrom(address,address,uint256,bytes)' as const
-        await nftContract.estimateGas[functionName](...convertArgs)
-          .then((estimatedGasLimit) => {
-            return nftContract[functionName](...convertArgs, {
-              gasLimit: calculateGasMargin(estimatedGasLimit),
-            }).then((response: TransactionResponse) => {
-              setTxHash(response.hash)
-              addTransaction(response, {
-                type: TransactionType.CUSTOM,
-                summary: 'Depositing to V3 Farm',
-              })
-              return response.wait(2)
+
+        await startTransaction(nftContract, functionName, args)
+          .then((response: TransactionResponse) => {
+            setTxHash(response.hash)
+            addTransaction(response, {
+              type: TransactionType.CUSTOM,
+              summary: 'Depositing to V3 Farm',
             })
+            return response.wait(2)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)
@@ -162,21 +183,15 @@ export function useWithdrawCallback(): [
           ),
           farmContract.interface.encodeFunctionData('withdrawToken', [tokenId, account, '0x']),
         ]
-        await farmContract.estimateGas
-          .multicall(calldatas)
-          .then((estimatedGasLimit) => {
-            return farmContract
-              .multicall(calldatas, {
-                gasLimit: calculateGasMargin(estimatedGasLimit),
-              })
-              .then((response: TransactionResponse) => {
-                setTxHash(response.hash)
-                addTransaction(response, {
-                  type: TransactionType.CUSTOM,
-                  summary: 'Withdraw from V3 Farm',
-                })
-                return response.wait(2)
-              })
+
+        await startTransaction(farmContract, 'multicall', [calldatas])
+          .then((response: TransactionResponse) => {
+            setTxHash(response.hash)
+            addTransaction(response, {
+              type: TransactionType.CUSTOM,
+              summary: 'Withdraw from V3 Farm',
+            })
+            return response.wait(2)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)
@@ -247,21 +262,15 @@ export function useCollectRewardCallback(): [(collectParams: CollectRewardParams
             ])
           ),
         ]
-        await farmContract.estimateGas
-          .multicall(calldatas)
-          .then((estimatedGasLimit) => {
-            return farmContract
-              .multicall(calldatas, {
-                gasLimit: calculateGasMargin(estimatedGasLimit),
-              })
-              .then((response: TransactionResponse) => {
-                setTxHash(response.hash)
-                addTransaction(response, {
-                  type: TransactionType.CUSTOM,
-                  summary: 'Collecting Rewards',
-                })
-                return response.wait(2)
-              })
+
+        await startTransaction(farmContract, 'multicall', [calldatas])
+          .then((response: TransactionResponse) => {
+            setTxHash(response.hash)
+            addTransaction(response, {
+              type: TransactionType.CUSTOM,
+              summary: 'Collecting Rewards',
+            })
+            return response.wait(2)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)
@@ -332,21 +341,14 @@ export function useCollectFeeCallback(): [(collectParams: CollectRewardParams[])
             ])
           ),
         ]
-        await farmContract.estimateGas
-          .multicall(calldatas)
-          .then((estimatedGasLimit) => {
-            return farmContract
-              .multicall(calldatas, {
-                gasLimit: calculateGasMargin(estimatedGasLimit),
-              })
-              .then((response: TransactionResponse) => {
-                setTxHash(response.hash)
-                addTransaction(response, {
-                  type: TransactionType.CUSTOM,
-                  summary: 'Collecting Rewards',
-                })
-                return response.wait(2)
-              })
+        await startTransaction(farmContract, 'multicall', [calldatas])
+          .then((response: TransactionResponse) => {
+            setTxHash(response.hash)
+            addTransaction(response, {
+              type: TransactionType.CUSTOM,
+              summary: 'Collecting Rewards',
+            })
+            return response.wait(2)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)

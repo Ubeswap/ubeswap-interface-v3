@@ -1,7 +1,8 @@
+import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { BigNumber } from '@ethersproject/bignumber'
 import { CustomUserProperties, SwapEventName } from '@ubeswap/analytics-events'
-import { Percent, UNIVERSAL_ROUTER_ADDRESS } from '@ubeswap/sdk-core'
+import { ChainId, Percent, UNIVERSAL_ROUTER_ADDRESS } from '@ubeswap/sdk-core'
 import { FlatFeeOptions, SwapRouter } from '@uniswap/universal-router-sdk'
 import { FeeOptions, toHex } from '@uniswap/v3-sdk'
 import { useWeb3React } from '@web3-react/core'
@@ -82,10 +83,18 @@ export function useUniversalRouterSwapCallback(
             fee: options.feeOptions,
             flatFee: options.flatFeeOptions,
           })
+          const dataSuffix = getDataSuffix({
+            consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
+            providers: [
+              '0x0423189886d7966f0dd7e7d256898daeee625dca',
+              '0x5f0a55fad9424ac99429f635dfb9bf20c3360ab8',
+              '0x6226dde08402642964f9a6de844ea3116f0dfc7e',
+            ],
+          })
           const tx = {
             from: account,
             to: UNIVERSAL_ROUTER_ADDRESS(chainId),
-            data,
+            data: data + dataSuffix,
             // TODO(https://github.com/Uniswap/universal-router-sdk/issues/113): universal-router-sdk returns a non-hexlified value.
             ...(value && !isZero(value) ? { value: toHex(value) } : {}),
           }
@@ -122,6 +131,10 @@ export function useUniversalRouterSwapCallback(
               }
             }
           )
+          submitReferral({
+            txHash: response.hash as `0x${string}`,
+            chainId: ChainId.CELO,
+          })
           sendAnalyticsEvent(SwapEventName.SWAP_SIGNED, {
             ...formatSwapSignedAnalyticsEventProperties({
               trade,
