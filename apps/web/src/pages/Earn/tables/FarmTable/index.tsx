@@ -1,7 +1,7 @@
 import { ApolloError } from '@apollo/client'
 import { ColumnDef, createColumnHelper } from '@tanstack/react-table'
 import { InterfaceElementName } from '@ubeswap/analytics-events'
-import { ChainId, Percent, Token } from '@ubeswap/sdk-core'
+import { ChainId, Fraction, Percent, Token } from '@ubeswap/sdk-core'
 import Row from 'components/Row'
 import { Table } from 'components/Table'
 import { Cell } from 'components/Table/Cell'
@@ -11,19 +11,19 @@ import { MAX_WIDTH_MEDIA_BREAKPOINT } from 'components/Tokens/constants'
 import { exploreSearchStringAtom } from 'components/Tokens/state'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { BIPS_BASE } from 'constants/misc'
-import DoubleTokenLogo from './DoubleTokenLogo'
-
 import { OrderDirection, supportedChainIdFromGQLChain, validateUrlChainParam } from 'graphql/data/util'
 import { Trans } from 'i18n'
 import { useAtom } from 'jotai'
 import { atomWithReset, useAtomValue, useResetAtom, useUpdateAtom } from 'jotai/utils'
 import { FarmSortFields, TableFarm, useActiveFarms, useInactiveFarms } from 'pages/Earn/data/useFarms'
+import { StakeSortFields, useStakes } from 'pages/Earn/data/useStakes'
 import { ReactElement, ReactNode, useCallback, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { ThemedText } from 'theme/components'
 import { ProtocolVersion } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
 import { NumberType, useFormatter } from 'utils/formatNumbers'
+import DoubleTokenLogo from './DoubleTokenLogo'
 
 const HEADER_DESCRIPTIONS: Record<FarmSortFields, ReactNode | undefined> = {
   [FarmSortFields.TVL]: undefined,
@@ -46,7 +46,7 @@ interface FarmTableValues {
   farmDescription: ReactElement
   tvl: number
   apr: Percent
-  protocolVersion: ProtocolVersion
+  protocolVersion: ProtocolVersion | '-'
   link: string
 }
 
@@ -76,11 +76,19 @@ function PoolDescription({
   return (
     <Row gap="sm">
       <DoubleTokenLogo chainId={chainId} tokens={tokens} size={28} />
-      <NameText>
-        {token0.symbol}/{token1.symbol}
-      </NameText>
-      {protocolVersion === ProtocolVersion.V2 && <Badge>{protocolVersion.toLowerCase()}</Badge>}
-      <Badge>{feeTier / BIPS_BASE}%</Badge>
+      {feeTier == 0 ? (
+        <>
+          <NameText>{token0.symbol} Stake</NameText>
+        </>
+      ) : (
+        <>
+          <NameText>
+            {token0.symbol}/{token1.symbol}
+          </NameText>
+          {protocolVersion === ProtocolVersion.V2 && <Badge>{protocolVersion.toLowerCase()}</Badge>}
+          <Badge>{feeTier / BIPS_BASE}%</Badge>
+        </>
+      )}
     </Row>
   )
 }
@@ -177,6 +185,33 @@ export function InactiveFarmTable() {
     { sortBy: sortMethod, sortDirection: sortAscending ? OrderDirection.Asc : OrderDirection.Desc },
     chainId
   )
+
+  const { stakes, loading: stakesLoading } = useStakes(
+    {
+      sortBy: sortMethod as unknown as StakeSortFields,
+      sortDirection: sortAscending ? OrderDirection.Asc : OrderDirection.Desc,
+    },
+    false,
+    chainId
+  )
+  const convertedStakes = useMemo(() => {
+    return stakes.map((stake) => {
+      return {
+        hash: stake.stakingRewardAddress,
+        farmAddress: stake.stakingRewardAddress,
+        poolAddress: stake.stakingRewardAddress,
+        token0: stake.stakingToken,
+        token1: stake.rewardTokens[0]!,
+        token0Amount: new Fraction(0),
+        token1Amount: new Fraction(0),
+        tvl: stake.tvl,
+        apr: stake.apr,
+        feeTier: 0,
+        protocolVersion: 'V2',
+      } as TableFarm
+    })
+  }, [stakes])
+
   // const combinedError =
   //   errorV2 && errorV3
   //     ? new ApolloError({ errorMessage: `Could not retrieve V2 and V3 Top Pools on chain: ${chainId}` })
@@ -186,7 +221,13 @@ export function InactiveFarmTable() {
 
   return (
     <TableWrapper data-testid="inactive-farms-earn-table">
-      <FarmsTable pools={farms} loading={loading} error={undefined} chainId={chainId} maxWidth={1200} />
+      <FarmsTable
+        pools={convertedStakes.concat(farms)}
+        loading={loading || stakesLoading}
+        error={undefined}
+        chainId={chainId}
+        maxWidth={1200}
+      />
     </TableWrapper>
   )
 }
@@ -221,7 +262,9 @@ export function FarmsTable({
       pools?.map((pool, index) => {
         const poolSortRank = index + 1
         const link =
-          pool.protocolVersion == ProtocolVersion.V3
+          pool.feeTier == 0
+            ? `/stakes/${pool.farmAddress}`
+            : pool.protocolVersion == ProtocolVersion.V3
             ? `/farmv3/${pool.poolAddress}`
             : `/farm/${pool.token0.address}/${pool.token1.address}/${pool.farmAddress}`
 
@@ -238,7 +281,7 @@ export function FarmsTable({
           ),
           tvl: pool.tvl,
           apr: pool.apr,
-          protocolVersion: pool.protocolVersion,
+          protocolVersion: pool.feeTier == 0 ? '-' : pool.protocolVersion,
           link,
           analytics: {
             elementName: InterfaceElementName.POOLS_TABLE_ROW,

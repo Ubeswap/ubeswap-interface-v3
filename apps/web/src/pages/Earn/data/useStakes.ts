@@ -45,7 +45,7 @@ export type StakeTableSortState = {
   sortDirection: OrderDirection
 }
 
-function useFilteredStakes(pools: TableStake[]) {
+function useFilteredStakes(pools: TableStake[], isActive: boolean) {
   const filterString = useAtomValue(exploreSearchStringAtom)
 
   const lowercaseFilterString = useMemo(() => filterString.toLowerCase(), [filterString])
@@ -59,13 +59,14 @@ function useFilteredStakes(pools: TableStake[]) {
         const poolName = `${pool.stakingToken?.symbol} Stake`.toLowerCase()
         const poolNameIncludesFilterString = poolName.includes(lowercaseFilterString)
         return (
-          hashIncludesFilterString ||
-          tokenIncludesFilterString ||
-          addressIncludesFilterString ||
-          poolNameIncludesFilterString
+          pool.isActive == isActive &&
+          (hashIncludesFilterString ||
+            tokenIncludesFilterString ||
+            addressIncludesFilterString ||
+            poolNameIncludesFilterString)
         )
       }),
-    [lowercaseFilterString, pools]
+    [lowercaseFilterString, pools, isActive]
   )
 }
 
@@ -101,7 +102,7 @@ async function fetchStakes(): Promise<StakeInfo[] | undefined> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function useStakes(sortState: StakeTableSortState, chainId?: ChainId) {
+export function useStakes(sortState: StakeTableSortState, isActive: boolean, chainId?: ChainId) {
   const tokens = useDefaultActiveTokens(ChainId.CELO)
   const { data: stakesBackend } = useQuery({
     queryKey: ['stakes'],
@@ -125,7 +126,7 @@ export function useStakes(sortState: StakeTableSortState, chainId?: ChainId) {
         rewardTokens: ['0x7b97031b6297bc8e030B07Bd84Ce92FEa1B00c3e'],
         tvl: 0,
         apr: 0,
-        isActive: true,
+        isActive: false,
       },
       {
         stakingRewardAddress: '0xfB8cA52748E70F887E9B8C5ffBb611D1eA4cC725',
@@ -133,7 +134,7 @@ export function useStakes(sortState: StakeTableSortState, chainId?: ChainId) {
         rewardTokens: ['0x4F604735c1cF31399C6E711D5962b2B3E0225AD3'],
         tvl: 0,
         apr: 0,
-        isActive: true,
+        isActive: false,
       },
     ]
   }, [])
@@ -165,7 +166,7 @@ export function useStakes(sortState: StakeTableSortState, chainId?: ChainId) {
         rewardTokens: stake.rewardTokens,
         tvl: stake.tvl,
         apr: stake.apr,
-        isActive: true,
+        isActive: stake.isActive,
       } as TableStake
     })
 
@@ -173,6 +174,6 @@ export function useStakes(sortState: StakeTableSortState, chainId?: ChainId) {
     return rt
   }, [stakes, sortState])
 
-  const filteredStakes = useFilteredStakes(unfilteredStakes).slice(0, 100)
+  const filteredStakes = useFilteredStakes(unfilteredStakes, isActive).slice(0, 100)
   return { stakes: filteredStakes, loading }
 }

@@ -128,6 +128,7 @@ export function StakeTable() {
 
   const { stakes, loading } = useStakes(
     { sortBy: sortMethod, sortDirection: sortAscending ? OrderDirection.Asc : OrderDirection.Desc },
+    true,
     chainId
   )
   // const combinedError =

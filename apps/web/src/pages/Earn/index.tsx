@@ -101,7 +101,7 @@ const Pages: Array<Page> = [
     loggingElementName: InterfaceElementName.EXPLORE_POOLS_TAB,
   },
   {
-    title: <Trans>Inactive Farms</Trans>,
+    title: <Trans>Inactive Yields</Trans>,
     key: EarnTab.DeprecatedFarms,
     component: InactiveFarmTable,
     loggingElementName: InterfaceElementName.EXPLORE_TRANSACTIONS_TAB,
