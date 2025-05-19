@@ -192,7 +192,7 @@ export default function LaunchpadBuyModal({
     <>
       <Modal isOpen={isOpen} onDismiss={onDismiss}>
         <ModalWrapper>
-          <SwapHeader title="Convert to new PACT" hideSettings={true} />
+          <SwapHeader title={'Buy ' + outputCurrency?.symbol} hideSettings={true} />
           <Wrapper id="swap-page">
             <AutoColumn gap="md">
               <CurrencyInputPanel
