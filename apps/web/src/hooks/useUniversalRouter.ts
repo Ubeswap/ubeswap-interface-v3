@@ -85,11 +85,7 @@ export function useUniversalRouterSwapCallback(
           })
           const dataSuffix = getDataSuffix({
             consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
-            providers: [
-              '0x0423189886d7966f0dd7e7d256898daeee625dca',
-              '0x5f0a55fad9424ac99429f635dfb9bf20c3360ab8',
-              '0x6226dde08402642964f9a6de844ea3116f0dfc7e',
-            ],
+            providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xc95876688026be9d6fa7a7c33328bd013effa2bb'],
           })
           const tx = {
             from: account,
