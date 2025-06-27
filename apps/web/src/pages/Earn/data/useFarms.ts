@@ -60,6 +60,7 @@ export interface FetchedFarm {
   poolAddress: string
   token0: string
   token1: string
+  fee: number
   apr: number
   tvl: number
   protocolVersion: number
@@ -169,6 +170,15 @@ async function fetchFarms(): Promise<FetchedFarm[] | undefined> {
   }
 }
 
+const whitelistedPools = [
+  '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19', // UBE-CELO V3
+  '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b', // USDGLO-USDC 0.01%
+  '0x44569704b206798014217b8a02c700bf73ceb72f', // CELO-USDC 1%
+  '0x6ade22bd1d73c7162df10e06b51dbc725e2d44a2', // CELO-USDT 1%
+  '0x1ef76d432280c837e5668f582c82de8f6ca4024d', // CELO-UBE 0.3%
+  '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341', // USDGLO-G$ 1%
+]
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
   const tokens = useDefaultActiveTokens(ChainId.CELO)
@@ -181,9 +191,11 @@ export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId)
   })
 
   const farms = useMemo(() => {
+    const _farmsBackend = farmsBackend || []
     const backendFarms =
-      farmsBackend
-        ?.map((fetchedFarm): TableFarm[] => {
+      _farmsBackend
+        .filter((f: FetchedFarm) => whitelistedPools.includes(f.poolAddress.toLowerCase()))
+        .map((fetchedFarm): TableFarm[] => {
           if (tokens[fetchedFarm.token0] && tokens[fetchedFarm.token1]) {
             return [
               {
@@ -196,7 +208,7 @@ export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId)
                 token1Amount: new Fraction(0),
                 tvl: fetchedFarm.tvl,
                 apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
-                feeTier: 100,
+                feeTier: fetchedFarm.fee,
                 protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
               } as TableFarm,
             ]
@@ -270,7 +282,7 @@ async function fetchMetadata(incentiveId: string, _ipfsHash: string): Promise<Me
     totalShares: '0',
     dataFile: './data.json',
   }
-  if (_ipfsHash != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+  if (_ipfsHash != '0x0000000000000000000000000000000000000000000000000000000000000000' && incentiveId) {
     const ipfsHash = _ipfsHash.replace(/^0x/, '')
     const cidV0 = new CID(toB58String(hexToUint8Array('1220' + ipfsHash)))
     const cidV1Str = cidV0.toV1().toString()
@@ -280,11 +292,11 @@ async function fetchMetadata(incentiveId: string, _ipfsHash: string): Promise<Me
   return data
 }
 
-export function useV3IncentiveMetadata(incentiveId: string): Metadata | undefined {
+export function useV3IncentiveMetadata(incentiveId?: string): Metadata | undefined {
   const incentiveInfo = useIncentiveContractInfo(incentiveId)
   const { data: metadata } = useQuery({
     queryKey: ['farm-metadata', incentiveInfo?.ipfsHash || ''],
-    queryFn: () => fetchMetadata(incentiveId, incentiveInfo?.ipfsHash || ''),
+    queryFn: () => fetchMetadata(incentiveId || '', incentiveInfo?.ipfsHash || ''),
     enabled: !!incentiveInfo,
     staleTime: 1000_0000,
   })
@@ -305,7 +317,7 @@ export interface IncentiveDataItem {
 }
 
 async function fetchIncentiveFullData(
-  incentiveId: string,
+  incentiveId: string | undefined,
   _ipfsHash: string
 ): Promise<IncentiveDataItem[] | undefined> {
   if (!_ipfsHash) {
@@ -329,7 +341,7 @@ async function fetchIncentiveFullData(
   return result
 }
 
-export function useV3IncentiveFullData(incentiveId: string): IncentiveDataItem[] | undefined {
+export function useV3IncentiveFullData(incentiveId?: string): IncentiveDataItem[] | undefined {
   const incentiveInfo = useIncentiveContractInfo(incentiveId)
   const { data } = useQuery({
     queryKey: ['farm-fulldata', incentiveInfo?.ipfsHash || ''],

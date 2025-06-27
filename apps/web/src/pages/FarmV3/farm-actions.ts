@@ -379,13 +379,13 @@ interface IncentiveContractInfo {
   externalRewards: BigNumber
 }
 
-export function useIncentiveContractInfo(incentiveId: string): IncentiveContractInfo | undefined {
-  const farmContract = useUbeswapV3FarmingContract(FARM_ADDRESS)
+export function useIncentiveContractInfo(incentiveId?: string): IncentiveContractInfo | undefined {
+  const farmContract = useUbeswapV3FarmingContract(incentiveId ? FARM_ADDRESS : undefined)
   const result = useSingleCallResult(farmContract, 'incentives', [incentiveId])
   return (result?.result as unknown as IncentiveContractInfo) || undefined
 }
 
-interface TokenData {
+export interface TokenData {
   tokenId: BigNumber
   incentiveData: IncentiveDataItem | undefined
   stakeInfo:
@@ -396,8 +396,8 @@ interface TokenData {
       }
     | undefined
 }
-export function useIncentiveTokenData(incentiveId: string, tokenIds: BigNumber[]) {
-  const farmContract = useUbeswapV3FarmingContract(FARM_ADDRESS)
+export function useIncentiveTokenData(incentiveId: string | undefined, tokenIds: BigNumber[]) {
+  const farmContract = useUbeswapV3FarmingContract(incentiveId ? FARM_ADDRESS : undefined)
   const inputs = useMemo(
     () => (tokenIds && incentiveId ? tokenIds.map((tokenId) => [incentiveId, BigNumber.from(tokenId)]) : []),
     [tokenIds, incentiveId]

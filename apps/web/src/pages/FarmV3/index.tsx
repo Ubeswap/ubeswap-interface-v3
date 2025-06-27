@@ -42,6 +42,7 @@ import {
   useDepositCallback,
   useIncentiveTokenData,
   useWithdrawCallback,
+  type TokenData,
 } from './farm-actions'
 import { LoadingRows } from './styled'
 
@@ -270,6 +271,24 @@ function WrongNetworkCard() {
   )
 }
 
+function generateCollectParams(incentiveId: string, tokenDatas: TokenData[], tokenId?: BigNumber) {
+  return tokenDatas
+    .filter(
+      (d) =>
+        (tokenId ? d.tokenId.eq(tokenId) : true) &&
+        d.incentiveData &&
+        d.stakeInfo &&
+        d.incentiveData.accumulatedRewards.gt(d.stakeInfo.claimedReward) &&
+        (d.incentiveData.merkleProof?.length || 0) > 0
+    )
+    .map((d) => ({
+      key: getIncentiveKey(incentiveId),
+      tokenId: d.tokenId,
+      accumulatedRewards: d.incentiveData!.accumulatedRewards,
+      proof: d.incentiveData!.merkleProof!,
+    }))
+}
+
 export default function FarmV3() {
   const { account } = useWeb3React()
   const chainId = ChainId.CELO
@@ -321,10 +340,13 @@ export default function FarmV3() {
   const [callWithdraw, withdrawTxHash, isWithdrawing] = useWithdrawCallback()
   const [callCollectReward, collectRewardTxHash, isCollectingReward] = useCollectRewardCallback()
 
+  const shouldUseExtraUserTokenDatas = poolAddress?.toLowerCase() === '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341'
+
   const nativePrice = useUSDPrice(CurrencyAmount.fromRawAmount(CELO_CELO, 1e18)).data || 0
   const ubePrice = useUSDPrice(CurrencyAmount.fromRawAmount(UBE[ChainId.CELO], 1e18)).data || 0
 
   const metadata = useV3IncentiveMetadata(incentiveIds[0])
+  const extraMetadata = useV3IncentiveMetadata(shouldUseExtraUserTokenDatas ? incentiveIds[1] : undefined)
 
   const activeTvlNative = parseFloat(formatEther(BigNumber.from(metadata?.activeTvlNative || '0')))
   const inactiveTvlNative = parseFloat(formatEther(BigNumber.from(metadata?.inactiveTvlNative || '0')))
@@ -348,7 +370,26 @@ export default function FarmV3() {
     apr = new Percent(Math.round(ubeYearlyRewardUsd * 1_000_000), Math.round(activeTvlNative * nativePrice * 1_000_000))
   }
 
+  // const extraYearlyReward = parseFloat(
+  // formatEther(
+  //     BigNumber.from(extraMetadata?.distributedRewards || '0')
+  //       .mul(365 * 24 * 60 * 60)
+  //       .div(extraMetadata?.duration || 1)
+  // )
+  // )
+  const extraDailyReward = parseFloat(
+    formatEther(
+      BigNumber.from(extraMetadata?.distributedRewards || '0')
+        .mul(24 * 60 * 60)
+        .div(extraMetadata?.duration || 1)
+    )
+  )
+
   const userTokenDatas = useIncentiveTokenData(incentiveIds[0], userTokenIds)
+  const extraUserTokenDatas = useIncentiveTokenData(
+    shouldUseExtraUserTokenDatas ? incentiveIds[1] : undefined,
+    userTokenIds
+  )
 
   const activeUserTvlNative = useMemo(() => {
     return parseFloat(
@@ -373,6 +414,17 @@ export default function FarmV3() {
       )
     )
   }, [userTokenDatas])
+  const extraUnclaimedRewards = useMemo(() => {
+    return parseFloat(
+      formatEther(
+        extraUserTokenDatas
+          .filter((d) => d.incentiveData && d.stakeInfo)
+          .reduce((acc, curr) => {
+            return acc.add(curr.incentiveData?.accumulatedRewards || 0).sub(curr.stakeInfo?.claimedReward || 0)
+          }, BigNumber.from(0))
+      )
+    )
+  }, [extraUserTokenDatas])
 
   let userShare = new Percent(0)
   if (activeTvlNative > 0) {
@@ -387,21 +439,10 @@ export default function FarmV3() {
         console.error('missing token data')
         return
       }
-      const collectParams = userTokenDatas
-        .filter(
-          (d) =>
-            d.tokenId.eq(tokenId) &&
-            d.incentiveData &&
-            d.stakeInfo &&
-            d.incentiveData.accumulatedRewards.gt(d.stakeInfo.claimedReward) &&
-            (d.incentiveData.merkleProof?.length || 0) > 0
-        )
-        .map((d) => ({
-          key: getIncentiveKey(incentiveIds[0]),
-          tokenId: d.tokenId,
-          accumulatedRewards: d.incentiveData!.accumulatedRewards,
-          proof: d.incentiveData!.merkleProof!,
-        }))
+      const collectParams = generateCollectParams(incentiveIds[0], userTokenDatas, tokenId)
+      if (extraUnclaimedRewards > 0) {
+        collectParams.push(...generateCollectParams(incentiveIds[1], extraUserTokenDatas, tokenId))
+      }
 
       if (isWithdrawing == false) {
         callWithdraw(
@@ -411,7 +452,7 @@ export default function FarmV3() {
         )
       }
     },
-    [userTokenDatas, isWithdrawing, callWithdraw, incentiveIds]
+    [userTokenDatas, extraUserTokenDatas, extraUnclaimedRewards, isWithdrawing, callWithdraw, incentiveIds]
   )
 
   const onDeposit = useCallback(
@@ -428,24 +469,22 @@ export default function FarmV3() {
 
   const onCollectReward = useCallback(() => {
     if (isCollectingReward == false && unclaimedRewards > 0) {
-      const collectParams = userTokenDatas
-        .filter(
-          (d) =>
-            d.incentiveData &&
-            d.stakeInfo &&
-            d.incentiveData.accumulatedRewards.gt(d.stakeInfo.claimedReward) &&
-            (d.incentiveData.merkleProof?.length || 0) > 0
-        )
-        .map((d) => ({
-          key: getIncentiveKey(incentiveIds[0]),
-          tokenId: d.tokenId,
-          accumulatedRewards: d.incentiveData!.accumulatedRewards,
-          proof: d.incentiveData!.merkleProof!,
-        }))
+      const collectParams = generateCollectParams(incentiveIds[0], userTokenDatas)
+      if (extraUnclaimedRewards > 0) {
+        collectParams.push(...generateCollectParams(incentiveIds[1], extraUserTokenDatas))
+      }
 
       callCollectReward(collectParams)
     }
-  }, [isCollectingReward, callCollectReward, userTokenDatas, incentiveIds, unclaimedRewards])
+  }, [
+    isCollectingReward,
+    callCollectReward,
+    userTokenDatas,
+    incentiveIds,
+    unclaimedRewards,
+    extraUnclaimedRewards,
+    extraUserTokenDatas,
+  ])
 
   const onDissmissConfirmationModal = useCallback(() => {}, [])
   const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(false)
@@ -472,6 +511,10 @@ export default function FarmV3() {
 
   const rewardText = formatNumber({
     input: unclaimedRewards,
+    type: NumberType.SwapDetailsAmount,
+  })
+  const extraRewardText = formatNumber({
+    input: extraUnclaimedRewards,
     type: NumberType.SwapDetailsAmount,
   })
 
@@ -550,9 +593,9 @@ export default function FarmV3() {
               )}
             </TitleRow>
 
-            <ResponsiveRow align="flex-start" gap="md">
+            <ResponsiveRow align="stretch" gap="md">
               <DarkCard>
-                <AutoColumn gap="md" style={{ width: '100%' }}>
+                <AutoColumn gap="md" style={{ width: '100%', height: '100%' }}>
                   <AutoColumn gap="md">
                     <Label>
                       <Trans>Total Deposits</Trans>
@@ -630,16 +673,43 @@ export default function FarmV3() {
 
                     <Row justify="space-between">
                       {unclaimedRewards > 0 ? (
-                        <ThemedText.DeprecatedLargeHeader
-                          fontSize={rewardText.length > 9 ? '30px' : '36px'}
-                          fontWeight={535}
-                        >
-                          {formatNumber({
-                            input: unclaimedRewards,
-                            type: NumberType.SwapDetailsAmount,
-                          })}
-                          &nbsp; UBE
-                        </ThemedText.DeprecatedLargeHeader>
+                        <>
+                          {extraUnclaimedRewards > 0 ? (
+                            <AutoColumn gap="md">
+                              <ThemedText.DeprecatedMediumHeader
+                                fontSize={extraRewardText.length > 9 || rewardText.length > 9 ? '20px' : '26px'}
+                                fontWeight={535}
+                              >
+                                {formatNumber({
+                                  input: unclaimedRewards,
+                                  type: NumberType.SwapDetailsAmount,
+                                })}
+                                &nbsp; UBE
+                              </ThemedText.DeprecatedMediumHeader>
+                              <ThemedText.DeprecatedMediumHeader
+                                fontSize={extraRewardText.length > 9 || rewardText.length > 9 ? '20px' : '26px'}
+                                fontWeight={535}
+                              >
+                                {formatNumber({
+                                  input: extraUnclaimedRewards,
+                                  type: NumberType.SwapDetailsAmount,
+                                })}
+                                &nbsp; G$
+                              </ThemedText.DeprecatedMediumHeader>
+                            </AutoColumn>
+                          ) : (
+                            <ThemedText.DeprecatedLargeHeader
+                              fontSize={rewardText.length > 9 ? '30px' : '36px'}
+                              fontWeight={535}
+                            >
+                              {formatNumber({
+                                input: unclaimedRewards,
+                                type: NumberType.SwapDetailsAmount,
+                              })}
+                              &nbsp; UBE
+                            </ThemedText.DeprecatedLargeHeader>
+                          )}
+                        </>
                       ) : (
                         <ThemedText.DeprecatedLargeHeader color={theme.neutral1} fontSize="36px" fontWeight={535}>
                           <Trans>-</Trans>
@@ -658,7 +728,10 @@ export default function FarmV3() {
                         <ThemedText.DeprecatedMain>Daily Rewards</ThemedText.DeprecatedMain>
                         <ThemedText.DeprecatedMain>
                           {formatNumber({ input: ubeDailyReward, type: NumberType.SwapDetailsAmount })}
-                          &nbsp; UBE
+                          &nbsp; UBE &nbsp;
+                          {extraDailyReward > 0
+                            ? formatNumber({ input: extraDailyReward, type: NumberType.SwapDetailsAmount }) + ' G$'
+                            : ''}
                         </ThemedText.DeprecatedMain>
                       </RowBetween>
                       <RowBetween>
@@ -668,7 +741,14 @@ export default function FarmV3() {
                             input: activeTvlNative > 0 ? (ubeDailyReward * activeUserTvlNative) / activeTvlNative : 0,
                             type: NumberType.SwapDetailsAmount,
                           })}
-                          &nbsp; UBE
+                          &nbsp; UBE &nbsp;
+                          {extraDailyReward > 0
+                            ? formatNumber({
+                                input:
+                                  activeTvlNative > 0 ? (extraDailyReward * activeUserTvlNative) / activeTvlNative : 0,
+                                type: NumberType.SwapDetailsAmount,
+                              }) + ' G$'
+                            : ''}
                         </ThemedText.DeprecatedMain>
                       </RowBetween>
                     </AutoColumn>
