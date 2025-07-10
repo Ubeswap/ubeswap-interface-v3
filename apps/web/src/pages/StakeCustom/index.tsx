@@ -79,7 +79,11 @@ export const StakeCustom: React.FC = () => {
 
   const periodFinish = BigNumber.from(useSingleCallResult(contract, 'periodFinish', []).result?.[0] ?? 0)
   const isFinished = periodFinish.gt(0) && periodFinish.lt(Math.floor(Date.now() / 1000))
-  const _rewardRate = useSingleCallResult(contract, 'rewardRate', []).result?.[0] ?? 0
+  const rewardRateFn =
+    contractAddress?.toLowerCase() == '0x799a23da264a157db6f9c02be62f82ce8d602a45'
+      ? 'getEffectiveRewardRate'
+      : 'rewardRate'
+  const _rewardRate = useSingleCallResult(contract, rewardRateFn, []).result?.[0] ?? 0
   const rewardRate = rewardToken ? CurrencyAmount.fromRawAmount(rewardToken, isFinished ? 0 : _rewardRate) : undefined
   const { data: yearlyRewardUsd } = useUSDPrice(rewardRate?.multiply(BIG_INT_SECONDS_IN_YEAR), rewardToken)
 
