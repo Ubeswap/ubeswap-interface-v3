@@ -110,6 +110,7 @@
     "https://*.quiknode.pro",
     "https://*.infura.io",
     "wss://relay.walletconnect.com",
+    "wss://relay.walletconnect.org",
     "wss://www.walletlink.org",
     "wss://ws-us3.pusher.com/",
     "https://unpkg.com",
