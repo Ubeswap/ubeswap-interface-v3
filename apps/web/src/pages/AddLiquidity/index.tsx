@@ -477,7 +477,14 @@ function AddLiquidity() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
-    if (pool && baseCurrency && quoteCurrency && !searchParams.get('maxPrice') && !searchParams.get('minPrice')) {
+    if (
+      pool &&
+      isValid &&
+      baseCurrency &&
+      quoteCurrency &&
+      !searchParams.get('maxPrice') &&
+      !searchParams.get('minPrice')
+    ) {
       const current = pool.tickCurrent
       const baseToken = baseCurrency.wrapped
       const quoteToken = quoteCurrency.wrapped
@@ -492,7 +499,7 @@ function AddLiquidity() {
       onLeftRangeInput(lower.toSignificant(5, undefined, Rounding.ROUND_UP))
       onRightRangeInput(upper.toSignificant(5, undefined, Rounding.ROUND_UP))
     }
-  }, [pool, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput])
+  }, [pool, isValid, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput])
 
   const handleSetFullRange = useCallback(() => {
     getSetFullRange()
@@ -506,7 +513,7 @@ function AddLiquidity() {
 
   const calculatePriceRange = useCallback(
     (type: PresetType) => {
-      if (pool && baseCurrency && quoteCurrency) {
+      if (pool && isValid && baseCurrency && quoteCurrency) {
         const current = pool.tickCurrent
         const baseToken = baseCurrency.wrapped
         const quoteToken = quoteCurrency.wrapped
@@ -524,7 +531,7 @@ function AddLiquidity() {
         setSearchParams(searchParams)
       }
     },
-    [pool, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput]
+    [pool, isValid, baseCurrency, quoteCurrency, searchParams, setSearchParams, onLeftRangeInput, onRightRangeInput]
   )
 
   const handleSetSafeRange = useCallback(() => {
