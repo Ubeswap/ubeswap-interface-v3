@@ -118,7 +118,7 @@
     "@vanilla-extract/jest-transform": "1.1.1",
     "@vanilla-extract/webpack-plugin": "2.3.1",
     "@vercel/og": "0.5.8",
-    "@walletconnect/types": "2.11.2",
+    "@walletconnect/types": "^2.11.2",
     "babel-jest": "29.6.1",
     "babel-loader": "8.2.5",
     "browser-cache-mock": "0.1.7",
