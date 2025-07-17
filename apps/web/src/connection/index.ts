@@ -255,7 +255,7 @@ export const connections = [
   gnosisSafeConnection,
   // uniwalletWCV2ConnectConnection,
   deprecatedInjectedConnection,
-  celoExtensionWalletConnection,
+  //celoExtensionWalletConnection,
   valoraConnectConnection,
   walletConnectV2Connection,
   coinbaseWalletConnection,
