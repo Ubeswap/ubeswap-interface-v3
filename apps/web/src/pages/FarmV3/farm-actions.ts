@@ -35,6 +35,8 @@ async function startTransaction(contract: Contract, funcName: string, args: read
   submitReferral({
     txHash: response.hash as `0x${string}`,
     chainId: ChainId.CELO,
+  }).catch((error) => {
+    console.error('Divvi error:', error)
   })
   return response
 }

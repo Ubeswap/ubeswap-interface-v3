@@ -103,6 +103,8 @@ export const useDoTransaction = (): DoTransactionFn => {
           submitReferral({
             txHash: response.hash as `0x${string}`,
             chainId: ChainId.CELO,
+          }).catch((error) => {
+            console.error('Divvi error:', error)
           })
         }
         addTransaction(response, {
