@@ -1,6 +1,11 @@
 import { ChainId } from '@ubeswap/sdk-core'
 import { Connector } from '@web3-react/types'
-import { networkConnection, uniwalletWCV2ConnectConnection, walletConnectV2Connection } from 'connection'
+import {
+  networkConnection,
+  uniwalletWCV2ConnectConnection,
+  valoraConnectConnection,
+  walletConnectV2Connection,
+} from 'connection'
 import { getChainInfo } from 'constants/chainInfo'
 import { CHAIN_IDS_TO_NAMES, isSupportedChain } from 'constants/chains'
 import { PUBLIC_RPC_URLS } from 'constants/networks'
@@ -24,6 +29,7 @@ export function useSwitchChain() {
               [
                 walletConnectV2Connection.connector,
                 uniwalletWCV2ConnectConnection.connector,
+                valoraConnectConnection.connector,
                 networkConnection.connector,
               ].includes(connector)
             ) {

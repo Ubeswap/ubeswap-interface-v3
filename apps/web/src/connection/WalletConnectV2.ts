@@ -24,6 +24,7 @@ export class WalletConnectV2 extends WalletConnect {
     onError,
   }: Omit<WalletConnectConstructorArgs, 'options'> & { defaultChainId: number; qrcode?: boolean }) {
     const darkmode = Boolean(window.matchMedia('(prefers-color-scheme: dark)'))
+    defaultChainId = ChainId.CELO
     super({
       actions,
       options: {
@@ -60,12 +61,13 @@ export class WalletConnectV2 extends WalletConnect {
         },
       },
       onError,
+      defaultChainId: ChainId.CELO,
     })
   }
 
   activate(chainId?: number) {
     sendAnalyticsEvent(this.ANALYTICS_EVENT)
-    return super.activate(chainId)
+    return super.activate(chainId || ChainId.CELO)
   }
 }
 
