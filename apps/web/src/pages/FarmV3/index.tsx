@@ -14,8 +14,9 @@ import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
 import TransactionConfirmationModal from 'components/TransactionConfirmationModal'
 import { isSupportedChain } from 'constants/chains'
 import { BIPS_BASE } from 'constants/misc'
-import { CELO_CELO, UBE } from 'constants/tokens'
+import { CELO_CELO } from 'constants/tokens'
 import { formatEther } from 'ethers/lib/utils'
+import { OrderDirection } from 'graphql/data/util'
 import { useToken } from 'hooks/Tokens'
 import { usePoolContract } from 'hooks/useContract'
 import { useUSDPrice } from 'hooks/useUSDPrice'
@@ -36,6 +37,7 @@ import { PositionDetails } from 'types/position'
 import { useMedia } from 'ui'
 import { formatRelativeTime } from 'utilities/src/time/time'
 import { NumberType, useFormatter } from 'utils/formatNumbers'
+import { FarmSortFields, useActiveFarms } from '../Earn/data/useFarms'
 import PositionList from './PositionList'
 import {
   useCollectRewardCallback,
@@ -343,20 +345,13 @@ export default function FarmV3() {
   const shouldUseExtraUserTokenDatas = poolAddress?.toLowerCase() === '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341'
 
   const nativePrice = useUSDPrice(CurrencyAmount.fromRawAmount(CELO_CELO, 1e18)).data || 0
-  const ubePrice = useUSDPrice(CurrencyAmount.fromRawAmount(UBE[ChainId.CELO], 1e18)).data || 0
 
   const metadata = useV3IncentiveMetadata(incentiveIds[0])
   const extraMetadata = useV3IncentiveMetadata(shouldUseExtraUserTokenDatas ? incentiveIds[1] : undefined)
 
   const activeTvlNative = parseFloat(formatEther(BigNumber.from(metadata?.activeTvlNative || '0')))
   const inactiveTvlNative = parseFloat(formatEther(BigNumber.from(metadata?.inactiveTvlNative || '0')))
-  const ubeYearlyReward = parseFloat(
-    formatEther(
-      BigNumber.from(metadata?.distributedRewards || '0')
-        .mul(365 * 24 * 60 * 60)
-        .div(metadata?.duration || 1)
-    )
-  )
+
   const ubeDailyReward = parseFloat(
     formatEther(
       BigNumber.from(metadata?.distributedRewards || '0')
@@ -364,19 +359,7 @@ export default function FarmV3() {
         .div(metadata?.duration || 1)
     )
   )
-  const ubeYearlyRewardUsd = ubeYearlyReward * ubePrice
-  let apr = new Percent(0)
-  if (activeTvlNative * nativePrice > 0) {
-    apr = new Percent(Math.round(ubeYearlyRewardUsd * 1_000_000), Math.round(activeTvlNative * nativePrice * 1_000_000))
-  }
 
-  // const extraYearlyReward = parseFloat(
-  // formatEther(
-  //     BigNumber.from(extraMetadata?.distributedRewards || '0')
-  //       .mul(365 * 24 * 60 * 60)
-  //       .div(extraMetadata?.duration || 1)
-  // )
-  // )
   const extraDailyReward = parseFloat(
     formatEther(
       BigNumber.from(extraMetadata?.distributedRewards || '0')
@@ -384,6 +367,10 @@ export default function FarmV3() {
         .div(extraMetadata?.duration || 1)
     )
   )
+
+  const { farms } = useActiveFarms({ sortBy: FarmSortFields.TVL, sortDirection: OrderDirection.Asc }, 42220)
+  const currentFarm = farms?.find((f) => f.poolAddress.toLowerCase() == poolAddress?.toLowerCase())
+  const apr = currentFarm?.apr || new Percent(0, 0)
 
   const userTokenDatas = useIncentiveTokenData(incentiveIds[0], userTokenIds)
   const extraUserTokenDatas = useIncentiveTokenData(
