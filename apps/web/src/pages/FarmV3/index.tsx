@@ -370,7 +370,7 @@ export default function FarmV3() {
 
   const { farms } = useActiveFarms({ sortBy: FarmSortFields.TVL, sortDirection: OrderDirection.Asc }, 42220)
   const currentFarm = farms?.find((f) => f.poolAddress.toLowerCase() == poolAddress?.toLowerCase())
-  const apr = currentFarm?.apr || new Percent(0, 0)
+  const apr = currentFarm?.apr || new Percent(0)
 
   const userTokenDatas = useIncentiveTokenData(incentiveIds[0], userTokenIds)
   const extraUserTokenDatas = useIncentiveTokenData(
