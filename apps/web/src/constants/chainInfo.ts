@@ -31,7 +31,7 @@ export function getBlocksPerMainnetEpochForChainId(chainId: number | undefined):
     case ChainId.AVALANCHE:
       return 6
     case ChainId.CELO:
-      return 2
+      return 10
     default:
       return 1
   }
