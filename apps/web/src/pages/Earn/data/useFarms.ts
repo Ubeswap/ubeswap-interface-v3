@@ -177,6 +177,7 @@ const whitelistedPools = [
   '0x6ade22bd1d73c7162df10e06b51dbc725e2d44a2', // CELO-USDT 1%
   '0x1ef76d432280c837e5668f582c82de8f6ca4024d', // CELO-UBE 0.3%
   '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341', // USDGLO-G$ 1%
+  '0x1e283e3cb1ffcbd92551867cfed10b712f52878c', // REGEN-CELO 0.3%
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

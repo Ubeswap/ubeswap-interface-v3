@@ -170,6 +170,30 @@ const incentiveKeys: Record<string, IncentiveKey> = {
     maxTickUpper: 887272,
     minTickUpper: -887272,
   },
+  // REGEN-CELO 0.3% - UBE Incentive
+  '0x9fde166e7857f8b802dcd5da79a1362730c1d9c80771ba6000082f5d6aa6de42': {
+    rewardToken: '0x71e26d0E519D14591b9dE9a0fE9513A398101490',
+    pool: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c',
+    startTime: 1753980646,
+    lockTime: 0,
+    minimumTickRange: 0,
+    maxTickLower: 887272,
+    minTickLower: -887272,
+    maxTickUpper: 887272,
+    minTickUpper: -887272,
+  },
+  // REGEN-CELO 0.3% - REGEN Incentive
+  '0xf8e541ec3c61d81809a55838a6e418c33dfe184737850dbb64ee548e1161f3e7': {
+    rewardToken: '0x2E6C05f1f7D1f4Eb9A088bf12257f1647682b754',
+    pool: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c',
+    startTime: 1753980646,
+    lockTime: 0,
+    minimumTickRange: 0,
+    maxTickLower: 887272,
+    minTickLower: -887272,
+    maxTickUpper: 887272,
+    minTickUpper: -887272,
+  },
 }
 
 const incentiveIds: string[] = [
@@ -186,6 +210,8 @@ const incentiveIds: string[] = [
   '0x97b265327f11c09b6b4443d3539e779ddaef5cadf64b78dcc5a818dd23fe568e',
   '0x331a86c2cac46e56186ffdec064eff69309e8295620b2004dd12369e564f8442',
   '0xd16e99550073f6aa8d9c3869df25ff1914ad9337d4e60f9fa7dbf50da542f808',
+  '0x9fde166e7857f8b802dcd5da79a1362730c1d9c80771ba6000082f5d6aa6de42',
+  '0xf8e541ec3c61d81809a55838a6e418c33dfe184737850dbb64ee548e1161f3e7',
 ]
 
 export function getAllIncentiveIds() {
