@@ -2949,10 +2949,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@divvi/referral-sdk@npm:1.0.0":
-  version: 1.0.0
-  resolution: "@divvi/referral-sdk@npm:1.0.0"
-  checksum: 4a87198677de7faae2e95cd1199df11aeab5221e71aac0138ed025a75a5a1327b247b02045f634bb22885f9ed6a6b14adb91f9e8503355a3404064f28b088a26
+"@divvi/referral-sdk@npm:2.3.0":
+  version: 2.3.0
+  resolution: "@divvi/referral-sdk@npm:2.3.0"
+  checksum: 521432e6aab60ee0388b67588c6bf9ef1abaeb03675baff61084d8ea203da53f018cdf6e80d8aca29bbbb450e60b07368ea8cc53c6b3e7637749b0ea56db425b
   languageName: node
   linkType: hard
 
@@ -13076,7 +13076,7 @@ __metadata:
     "@coinbase/wallet-sdk": 3.7.2
     "@craco/craco": 7.1.0
     "@crowdin/cli": 3.14.0
-    "@divvi/referral-sdk": 1.0.0
+    "@divvi/referral-sdk": 2.3.0
     "@emotion/react": 11.10.8
     "@ethersproject/experimental": 5.7.0
     "@graphql-codegen/cli": ^3.3.1

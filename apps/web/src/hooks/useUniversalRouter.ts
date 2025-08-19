@@ -1,4 +1,4 @@
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { BigNumber } from '@ethersproject/bignumber'
 import { CustomUserProperties, SwapEventName } from '@ubeswap/analytics-events'
@@ -83,9 +83,10 @@ export function useUniversalRouterSwapCallback(
             fee: options.feeOptions,
             flatFee: options.flatFeeOptions,
           })
-          const dataSuffix = getDataSuffix({
+          const dataSuffix = getReferralTag({
+            user: account as `0x${string}`,
             consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
-            providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xc95876688026be9d6fa7a7c33328bd013effa2bb'],
+            //providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xe451b7Cd488aD2Bf6bfdECD7702a2967329cC1D0'],
           })
           const tx = {
             from: account,

@@ -1,4 +1,4 @@
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { CallOverrides, Contract, ContractTransaction, PayableOverrides } from '@ethersproject/contracts'
 import { TransactionRequest } from '@ethersproject/providers'
@@ -92,9 +92,10 @@ export const useDoTransaction = (): DoTransactionFn => {
           response = await signer.sendTransaction(args.raw)
         } else {
           const tx = await contract.populateTransaction[methodName](...args.args)
-          const dataSuffix = getDataSuffix({
+          const dataSuffix = getReferralTag({
+            user: (await signer.getAddress()) as `0x${string}`,
             consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
-            providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xc95876688026be9d6fa7a7c33328bd013effa2bb'],
+            //providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xe451b7Cd488aD2Bf6bfdECD7702a2967329cC1D0'],
           })
           tx.data = (tx.data ?? '') + dataSuffix
           tx.gasLimit = calculateGasMargin(gasEstimate)

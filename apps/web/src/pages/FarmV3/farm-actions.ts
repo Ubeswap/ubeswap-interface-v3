@@ -1,4 +1,4 @@
-import { getDataSuffix, submitReferral } from '@divvi/referral-sdk'
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { defaultAbiCoder } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
@@ -22,12 +22,13 @@ function encodeKeys(keys: IncentiveKey[]) {
   return defaultAbiCoder.encode([keyArrayType], [keys])
 }
 
-async function startTransaction(contract: Contract, funcName: string, args: readonly any[]) {
+async function startTransaction(account: string, contract: Contract, funcName: string, args: readonly any[]) {
   const estimatedGasLimit = await contract.estimateGas[funcName](...args)
   const tx = await contract.populateTransaction[funcName](...args)
-  const dataSuffix = getDataSuffix({
+  const dataSuffix = getReferralTag({
+    user: account as `0x${string}`,
     consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
-    providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xc95876688026be9d6fa7a7c33328bd013effa2bb'],
+    //providers: ['0x0423189886d7966f0dd7e7d256898daeee625dca', '0xe451b7Cd488aD2Bf6bfdECD7702a2967329cC1D0'],
   })
   tx.data = (tx.data ?? '') + dataSuffix
   tx.gasLimit = calculateGasMargin(estimatedGasLimit)
@@ -88,7 +89,7 @@ export function useDepositCallback(): [
         const args = [account, FARM_ADDRESS, tokenId.toString(), data] as const
         const functionName = 'safeTransferFrom(address,address,uint256,bytes)' as const
 
-        await startTransaction(nftContract, functionName, args)
+        await startTransaction(account, nftContract, functionName, args)
           .then((response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
@@ -182,7 +183,7 @@ export function useWithdrawCallback(): [
           farmContract.interface.encodeFunctionData('withdrawToken', [tokenId, account, '0x']),
         ]
 
-        await startTransaction(farmContract, 'multicall', [calldatas])
+        await startTransaction(account, farmContract, 'multicall', [calldatas])
           .then((response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
@@ -261,7 +262,7 @@ export function useCollectRewardCallback(): [(collectParams: CollectRewardParams
           ),
         ]
 
-        await startTransaction(farmContract, 'multicall', [calldatas])
+        await startTransaction(account, farmContract, 'multicall', [calldatas])
           .then((response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
@@ -339,7 +340,7 @@ export function useCollectFeeCallback(): [(collectParams: CollectRewardParams[])
             ])
           ),
         ]
-        await startTransaction(farmContract, 'multicall', [calldatas])
+        await startTransaction(account, farmContract, 'multicall', [calldatas])
           .then((response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
