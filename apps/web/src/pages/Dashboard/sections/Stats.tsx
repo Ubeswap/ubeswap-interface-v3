@@ -134,7 +134,7 @@ const ProtocolDescription = () => {
     <div style={{ fontSize: '16px' }}>
       Ubeswap is a protocol for decentralized exchange and automated liquidity provision on Celo. With{' '}
       {data ? data.poolCount : '-'} pairs and {data ? data.tokenCount : '-'} tokens listed on the protocol, Ubeswap
-      offers the premier experience of DeFi on Celo.
+      offers the premier DeFi experience on Celo.
     </div>
   )
 }
