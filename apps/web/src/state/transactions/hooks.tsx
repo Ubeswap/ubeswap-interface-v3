@@ -145,7 +145,8 @@ export function useHasPendingRevocation(token?: Token, spender?: string): boolea
 }
 
 export function isPendingTx(tx: TransactionDetails): boolean {
-  return !tx.receipt && !tx.cancelled
+  const isOld = tx.addedTime < Date.now() - 60_000
+  return !isOld && !tx.receipt && !tx.cancelled
 }
 
 export function usePendingTransactions(): TransactionDetails[] {
