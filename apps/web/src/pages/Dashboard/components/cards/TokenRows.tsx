@@ -44,6 +44,31 @@ const TokenRow = styled.div`
   }
 `
 
+const EmptyBlock = styled.div`
+  width: 100%;
+  height: 204px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-radius: 20px;
+  background-color: ${({ theme }) => theme.surface1};
+
+  @media (max-width: 1024px) {
+    height: 204px;
+  }
+
+  @media (max-width: 768px) {
+    height: 182px;
+  }
+
+  @media (max-width: 468px) {
+    height: 166px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+`
+
 const TokenName = styled.h3`
   padding: 0;
   margin: 0;
@@ -350,35 +375,32 @@ export function LaunchpadRow({
     url: string
   }[]
 }) {
-  // Aktif proje yoksa "No Active Projects" mesajını göster
   if (!launchpads || launchpads.length === 0) {
     return (
-      <TokenRow onClick={() => {}} style={{ height: '204px' }}>
+      <EmptyBlock>
         <Box justify="space-between" gap="16px" style={{ width: '100%' }}>
           <TokenName style={{ width: '100%', textAlign: 'center' }}>No Active Projects</TokenName>
         </Box>
-      </TokenRow>
+      </EmptyBlock>
     )
   }
 
   const maxRows = 3
 
-  // Aktif projeleri göster
   return (
     <>
       {launchpads.map((launchpad) => (
         <LaunchpadItem key={launchpad.launchpadAddress} launchpad={launchpad} />
       ))}
 
-      {/* Eksik satırlar için boş satırlar ekle */}
       {launchpads.length < maxRows &&
         Array.from({ length: maxRows - launchpads.length }).map((_, index) => (
           <div
             key={`empty-${index}`}
             style={{
-              height: '58px', // TokenRow ile aynı yükseklik(neredeyse)
+              height: '58px',
               width: '100%',
-              margin: '3px 0', // Satırlar arası boşluk
+              margin: '3px 0',
             }}
           />
         ))}

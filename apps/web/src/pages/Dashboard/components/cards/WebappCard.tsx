@@ -17,9 +17,6 @@ const Contents = styled.div`
   @media (max-width: 1024px) {
     padding: 12px;
   }
-  @media (max-width: 396px) {
-    padding: 16px;
-  }
 `
 
 const CardTitle = styled.h2`
@@ -55,14 +52,11 @@ type WebappCardProps = {
   type: 'token' | 'earn' | 'launch'
 }
 
-// Ana renk
 const primary = '#2ABDFF'
 
 export function WebappCard(props: WebappCardProps) {
-  // Dashboard verilerini ve loading durumunu çek
   const { data, isLoading } = useDashboardData()
 
-  // Loading için render
   if (isLoading) {
     return (
       <ValuePropCard
@@ -79,7 +73,6 @@ export function WebappCard(props: WebappCardProps) {
     )
   }
 
-  // Kart içeriğini belirleme
   const renderContent = () => {
     if (!data) return null
 
