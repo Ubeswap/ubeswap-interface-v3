@@ -110,7 +110,7 @@ const EIGHT_DECIMALS_CURRENCY: NumberFormatOptions = {
 
 const SHORTHAND_TWO_DECIMALS: NumberFormatOptions = {
   notation: 'compact',
-  minimumFractionDigits: 2,
+  minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 }
 
@@ -586,7 +586,7 @@ function formatPercent(percent: Percent | undefined, locale: SupportedLocale = D
   if (!percent) return '-'
 
   return `${Number(percent.toFixed(3)).toLocaleString(locale, {
-    maximumFractionDigits: 3,
+    maximumFractionDigits: 2,
     useGrouping: false,
   })}%`
 }
