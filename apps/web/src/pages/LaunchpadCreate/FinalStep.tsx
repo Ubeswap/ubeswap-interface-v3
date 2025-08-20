@@ -214,7 +214,7 @@ export default function FinalStep({ onBack }: { onBack: () => void }) {
                 <ThemedText.BodyPrimary color="neutral1">
                   {formatCurrencyAmount({
                     amount: ubeFeeAmount,
-                    type: NumberType.TokenTx,
+                    type: NumberType.TokenNonTx,
                   })}{' '}
                   UBE
                 </ThemedText.BodyPrimary>
@@ -228,7 +228,7 @@ export default function FinalStep({ onBack }: { onBack: () => void }) {
                 <ThemedText.BodyPrimary color="neutral1">
                   {formatCurrencyAmount({
                     amount: tokenAmountForSale,
-                    type: NumberType.TokenTx,
+                    type: NumberType.TokenNonTx,
                   })}{' '}
                   {token?.symbol}
                 </ThemedText.BodyPrimary>
@@ -242,7 +242,7 @@ export default function FinalStep({ onBack }: { onBack: () => void }) {
                 <ThemedText.BodyPrimary color="neutral1">
                   {formatCurrencyAmount({
                     amount: tokenAmountForLiq,
-                    type: NumberType.TokenTx,
+                    type: NumberType.TokenNonTx,
                   })}{' '}
                   {token?.symbol}
                 </ThemedText.BodyPrimary>
@@ -272,7 +272,7 @@ export default function FinalStep({ onBack }: { onBack: () => void }) {
                     <strong>
                       {formatCurrencyAmount({
                         amount: ubeFeeAmount,
-                        type: NumberType.TokenTx,
+                        type: NumberType.TokenNonTx,
                       })}{' '}
                       UBE
                     </strong>{' '}
@@ -282,7 +282,7 @@ export default function FinalStep({ onBack }: { onBack: () => void }) {
                     <strong>
                       {formatCurrencyAmount({
                         amount: tokenAmount,
-                        type: NumberType.TokenTx,
+                        type: NumberType.TokenNonTx,
                       })}{' '}
                       {token?.symbol}
                     </strong>{' '}

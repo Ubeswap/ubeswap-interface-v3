@@ -465,7 +465,11 @@ export default function LaunchpadView({
                   <RowBetween>
                     <ThemedText.BodySecondary>Total Raised</ThemedText.BodySecondary>
                     <ThemedText.SubHeader>
-                      {totalRaisedAsQuote} {quoteToken?.symbol}
+                      {formatNumber({
+                        input: totalRaisedAsQuote,
+                        type: NumberType.TokenNonTx,
+                      })}{' '}
+                      {quoteToken?.symbol}
                     </ThemedText.SubHeader>
                   </RowBetween>
                 ) : (
@@ -480,13 +484,21 @@ export default function LaunchpadView({
                     <RowBetween>
                       <ThemedText.BodySecondary>Your Allocation</ThemedText.BodySecondary>
                       <ThemedText.SubHeader>
-                        {userTokens} {token?.symbol}
+                        {formatNumber({
+                          input: userTokens,
+                          type: NumberType.TokenNonTx,
+                        })}{' '}
+                        {token?.symbol}
                       </ThemedText.SubHeader>
                     </RowBetween>
                     <RowBetween>
                       <ThemedText.BodySecondary>Your Claimable Tokens</ThemedText.BodySecondary>
                       <ThemedText.SubHeader>
-                        {userClaimableTokens} {token?.symbol}
+                        {formatNumber({
+                          input: userClaimableTokens,
+                          type: NumberType.TokenNonTx,
+                        })}{' '}
+                        {token?.symbol}
                       </ThemedText.SubHeader>
                     </RowBetween>
                   </>

@@ -808,7 +808,10 @@ function PositionPageContent() {
                           <LinkedCurrency chainId={chainId ?? ChainId.CELO} currency={currencyQuote} />
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
-                              {formatCurrencyAmount({ amount: inverted ? position?.amount0 : position?.amount1 })}
+                              {formatCurrencyAmount({
+                                amount: inverted ? position?.amount0 : position?.amount1,
+                                type: NumberType.TokenTx,
+                              })}
                             </ThemedText.DeprecatedMain>
                             {typeof ratio === 'number' && !removed ? (
                               <Badge style={{ marginLeft: '10px' }}>
@@ -823,7 +826,10 @@ function PositionPageContent() {
                           <LinkedCurrency chainId={chainId ?? ChainId.CELO} currency={currencyBase} />
                           <RowFixed>
                             <ThemedText.DeprecatedMain>
-                              {formatCurrencyAmount({ amount: inverted ? position?.amount1 : position?.amount0 })}
+                              {formatCurrencyAmount({
+                                amount: inverted ? position?.amount1 : position?.amount0,
+                                type: NumberType.TokenTx,
+                              })}
                             </ThemedText.DeprecatedMain>
                             {typeof ratio === 'number' && !removed ? (
                               <Badge style={{ marginLeft: '10px' }}>
