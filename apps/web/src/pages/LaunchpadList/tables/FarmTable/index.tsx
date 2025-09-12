@@ -14,6 +14,7 @@ import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { ThemedText } from 'theme/components'
 import { formatRemainingTime } from 'utilities/src/time/time'
+import { NumberType, useFormatter } from 'utils/formatNumbers'
 import { LaunchpadListItem, LaunchpadStatus, useLaunchpads } from '../../data/useLaunchpads'
 
 const TableWrapper = styled.div`
@@ -193,6 +194,7 @@ export function LaunchpadsTable<T extends ActiveTableValues | CompletedTableValu
   maxHeight?: number
   isCompleted: boolean
 }) {
+  const { formatNumber } = useFormatter()
   const showLoadingSkeleton = loading || !!error
 
   // Active tablo verilerini oluştur
@@ -204,7 +206,10 @@ export function LaunchpadsTable<T extends ActiveTableValues | CompletedTableValu
             name: <TokenDescription tokenName={launchpad.tokenName} logoUrl={launchpad.logoUrl} />,
             symbol: launchpad.tokenSymbol,
             status: launchpad.status,
-            targetAmount: `${launchpad.hardCapAsQuote} ${launchpad.quoteTokenSymbol}`,
+            targetAmount: `${formatNumber({
+              input: launchpad.hardCapAsQuote,
+              type: NumberType.TokenNonTx,
+            })} ${launchpad.quoteTokenSymbol}`,
             remainingTime:
               Date.now() > new Date(launchpad.startDate).valueOf()
                 ? formatRemainingTime(launchpad.endDate)
@@ -212,7 +217,7 @@ export function LaunchpadsTable<T extends ActiveTableValues | CompletedTableValu
             link: '/ubestarter/details/' + launchpad.launchpadAddress,
           }))
         : [],
-    [isCompleted, launchpads]
+    [isCompleted, launchpads, formatNumber]
   )
 
   // Completed tablo verilerini oluştur
@@ -224,12 +229,18 @@ export function LaunchpadsTable<T extends ActiveTableValues | CompletedTableValu
             name: <TokenDescription tokenName={launchpad.tokenName} logoUrl={launchpad.logoUrl} />,
             symbol: launchpad.tokenSymbol,
             status: launchpad.status,
-            raisedAmount: `${launchpad.totalRaised} / ${launchpad.hardCapAsQuote} ${launchpad.quoteTokenSymbol}`,
+            raisedAmount: `${formatNumber({
+              input: launchpad.totalRaised,
+              type: NumberType.TokenNonTx,
+            })} / ${formatNumber({
+              input: launchpad.hardCapAsQuote,
+              type: NumberType.TokenNonTx,
+            })} ${launchpad.quoteTokenSymbol}`,
             endDate: formatDate(new Date(launchpad.endDate)),
             link: '/ubestarter/details/' + launchpad.launchpadAddress,
           }))
         : [],
-    [isCompleted, launchpads]
+    [isCompleted, launchpads, formatNumber]
   )
 
   // Active tablo sütunlarını oluştur
