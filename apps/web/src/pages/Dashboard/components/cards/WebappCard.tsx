@@ -17,6 +17,9 @@ const Contents = styled.div`
   @media (max-width: 1024px) {
     padding: 12px;
   }
+  @media (max-width: 396px) {
+    padding: 16px;
+  }
 `
 
 const CardTitle = styled.h2`
