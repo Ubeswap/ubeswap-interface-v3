@@ -36,6 +36,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (_tokenProvider: ITokenProvider): C
     [ChainId.POLYGON_MUMBAI]: [WMATIC_POLYGON_MUMBAI],
     [ChainId.CELO]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO]],
     [ChainId.CELO_ALFAJORES]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO_ALFAJORES]],
+    [ChainId.CELO_SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO_SEPOLIA]],
     [ChainId.GNOSIS]: [],
     [ChainId.MOONBEAM]: [],
     [ChainId.BNB]: [],

@@ -71,7 +71,7 @@ const CELO_ADDRESSES: ChainAddresses = {
 
 export const CHAIN_TO_ADDRESSES_MAP: Record<SupportedChainsType, ChainAddresses> = {
   [ChainId.CELO]: CELO_ADDRESSES,
-  [ChainId.CELO_ALFAJORES]: CELO_ADDRESSES,
+  [ChainId.CELO_SEPOLIA]: CELO_ADDRESSES,
 }
 
 /* V3 Contract Addresses */

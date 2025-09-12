@@ -203,6 +203,17 @@ const CHAIN_INFO: ChainInfoMap = {
     nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
     defaultListUrl: CELO_LIST,
   },
+  [ChainId.CELO_SEPOLIA]: {
+    networkType: NetworkType.L1,
+    blockWaitMsBeforeWarning: ms(`10m`),
+    //bridge: 'https://testnets.superbridge.app',
+    docs: 'https://docs.celo.org/network/celo-sepolia',
+    explorer: 'https://celo-sepolia.blockscout.com/',
+    infoLink: 'https://info.ubeswap.org/#/celo/',
+    label: 'Celo Sepolia',
+    nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+    defaultListUrl: CELO_LIST,
+  },
   [ChainId.BNB]: {
     networkType: NetworkType.L1,
     blockWaitMsBeforeWarning: ms(`10m`),

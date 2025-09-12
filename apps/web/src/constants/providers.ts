@@ -17,5 +17,6 @@ function getAppProvider(chainId: SupportedInterfaceChain) {
 export const RPC_PROVIDERS = {
   [ChainId.MAINNET]: getAppProvider(ChainId.MAINNET),
   [ChainId.CELO]: getAppProvider(ChainId.CELO),
-  [ChainId.CELO_ALFAJORES]: getAppProvider(ChainId.CELO_ALFAJORES),
+  //[ChainId.CELO_ALFAJORES]: getAppProvider(ChainId.CELO_ALFAJORES),
+  [ChainId.CELO_SEPOLIA]: getAppProvider(ChainId.CELO_SEPOLIA),
 } satisfies Record<SupportedInterfaceChain, AppJsonRpcProvider>

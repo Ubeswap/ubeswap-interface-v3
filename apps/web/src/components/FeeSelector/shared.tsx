@@ -10,7 +10,7 @@ export const FEE_AMOUNT_DETAIL: Record<
   [FeeAmount.LOWEST]: {
     label: '0.01',
     description: <Trans>Best for very stable pairs.</Trans>,
-    supportedChains: [ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.MAINNET],
+    supportedChains: [ChainId.CELO, ChainId.CELO_SEPOLIA, ChainId.MAINNET],
   },
   [FeeAmount.LOW]: {
     label: '0.05',

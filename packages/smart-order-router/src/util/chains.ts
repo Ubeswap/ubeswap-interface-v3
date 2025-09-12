@@ -266,6 +266,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'CELO',
     'Celo native asset'
   ),
+  [ChainId.CELO_SEPOLIA]: new Token(
+    ChainId.CELO_SEPOLIA,
+    '0x471EcE3750Da237f93B8E339c536989b8978a438',
+    18,
+    'CELO',
+    'Celo native asset'
+  ),
 }
 
 function isCelo(chainId: number): chainId is ChainId.CELO | ChainId.CELO_ALFAJORES {

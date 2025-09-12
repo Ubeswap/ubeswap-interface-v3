@@ -12,6 +12,7 @@ export enum ChainId {
   POLYGON_MUMBAI = 80001,
   CELO = 42220,
   CELO_ALFAJORES = 44787,
+  CELO_SEPOLIA = 11142220,
   GNOSIS = 100,
   MOONBEAM = 1284,
   BNB = 56,
@@ -24,7 +25,7 @@ export enum ChainId {
   BLAST = 81457,
 }
 
-export const SUPPORTED_CHAINS = [ChainId.CELO_ALFAJORES, ChainId.CELO] as const
+export const SUPPORTED_CHAINS = [ChainId.CELO_SEPOLIA, ChainId.CELO] as const
 export type SupportedChainsType = (typeof SUPPORTED_CHAINS)[number]
 
 export enum NativeCurrencyName {

@@ -13,7 +13,7 @@ import { CUSD_CELO, CUSD_CELO_ALFAJORES, USDC_MAINNET } from '../constants/token
 export const STABLECOIN_AMOUNT_OUT: { [key in SupportedInterfaceChain]: CurrencyAmount<Token> } = {
   [ChainId.MAINNET]: CurrencyAmount.fromRawAmount(USDC_MAINNET, 100_000e6),
   [ChainId.CELO]: CurrencyAmount.fromRawAmount(CUSD_CELO, 10_000e18),
-  [ChainId.CELO_ALFAJORES]: CurrencyAmount.fromRawAmount(CUSD_CELO_ALFAJORES, 10_000e6),
+  [ChainId.CELO_SEPOLIA]: CurrencyAmount.fromRawAmount(CUSD_CELO_ALFAJORES, 10_000e6),
 }
 
 /**

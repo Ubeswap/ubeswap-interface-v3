@@ -34,9 +34,13 @@ export const PUBLIC_RPC_URLS: Record<SupportedInterfaceChain, string[]> = {
     `https://forno.celo.org`,
     `https://rpc.ankr.com/celo`,
   ],
-  [ChainId.CELO_ALFAJORES]: [
+  // [ChainId.CELO_ALFAJORES]: [
+  // // "Safe" URLs
+  // `https://alfajores-forno.celo-testnet.org`,
+  // ],
+  [ChainId.CELO_SEPOLIA]: [
     // "Safe" URLs
-    `https://alfajores-forno.celo-testnet.org`,
+    `https://forno.celo-sepolia.celo-testnet.org`,
   ],
 }
 
@@ -52,7 +56,8 @@ export const APP_RPC_URLS: Record<SupportedInterfaceChain, string[]> = {
     QUICKNODE_MAINNET_RPC_URL,
     `https://celo-mainnet.infura.io/v3/${INFURA_KEY}`,
   ],
-  [ChainId.CELO_ALFAJORES]: [`https://celo-alfajores.infura.io/v3/${INFURA_KEY}`],
+  //[ChainId.CELO_ALFAJORES]: [`https://celo-alfajores.infura.io/v3/${INFURA_KEY}`],
+  [ChainId.CELO_SEPOLIA]: [`https://forno.celo-sepolia.celo-testnet.org`],
 }
 
 export const INFURA_PREFIX_TO_CHAIN_ID: { [prefix: string]: ChainId } = {

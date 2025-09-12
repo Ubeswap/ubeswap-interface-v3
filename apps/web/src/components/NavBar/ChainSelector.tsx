@@ -19,7 +19,7 @@ import { getSupportedChainIdsFromWalletConnectSession } from 'utils/getSupported
 import { DropdownSelector, StyledMenuContent } from 'components/DropdownSelector'
 import ChainSelectorRow from './ChainSelectorRow'
 
-const NETWORK_SELECTOR_CHAINS = [ChainId.CELO, ChainId.CELO_ALFAJORES]
+const NETWORK_SELECTOR_CHAINS = [ChainId.CELO, ChainId.CELO_SEPOLIA]
 
 const StyledDropdownButton = css`
   display: flex;

@@ -515,6 +515,7 @@ const STABLECOINS: { [chainId in ChainId]: Token[] } = {
   [ChainId.BASE]: [USDC_BASE],
   [ChainId.CELO]: [USDC_CELO],
   [ChainId.CELO_ALFAJORES]: [USDC_CELO],
+  [ChainId.CELO_SEPOLIA]: [USDC_CELO],
   [ChainId.GOERLI]: [USDC_GOERLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA],
   [ChainId.AVALANCHE]: [USDC_AVALANCHE],

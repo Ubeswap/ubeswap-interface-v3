@@ -54,6 +54,7 @@ export function getChainUI(chainId: ChainId, darkMode: boolean): ChainUI | undef
       }
     case ChainId.CELO:
     case ChainId.CELO_ALFAJORES:
+    case ChainId.CELO_SEPOLIA:
       return darkMode
         ? {
             Symbol: celo,
