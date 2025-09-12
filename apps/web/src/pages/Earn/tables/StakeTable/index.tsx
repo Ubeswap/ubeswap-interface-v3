@@ -55,7 +55,9 @@ function StakeDescription({ stakingToken, chainId }: { stakingToken: Token; chai
   return (
     <Row gap="sm">
       <SingleTokenLogo chainId={chainId} token={stakingToken} size={28} />
-      <NameText>{stakingToken.symbol} Stake</NameText>
+      <NameText>
+        {stakingToken.symbol} {stakingToken.symbol == 'G$' ? 'Savings' : 'Stake'}
+      </NameText>
     </Row>
   )
 }

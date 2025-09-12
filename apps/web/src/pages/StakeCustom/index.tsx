@@ -77,12 +77,10 @@ export const StakeCustom: React.FC = () => {
   const totalSupply = token ? CurrencyAmount.fromRawAmount(token, _totalSupply) : undefined
   const { data: totalSupplyUsd } = useUSDPrice(totalSupply, token)
 
+  const isGoodDollarContract = contractAddress?.toLowerCase() == '0x799a23da264a157db6f9c02be62f82ce8d602a45'
   const periodFinish = BigNumber.from(useSingleCallResult(contract, 'periodFinish', []).result?.[0] ?? 0)
   const isFinished = periodFinish.gt(0) && periodFinish.lt(Math.floor(Date.now() / 1000))
-  const rewardRateFn =
-    contractAddress?.toLowerCase() == '0x799a23da264a157db6f9c02be62f82ce8d602a45'
-      ? 'getEffectiveRewardRate'
-      : 'rewardRate'
+  const rewardRateFn = isGoodDollarContract ? 'getEffectiveRewardRate' : 'rewardRate'
   const _rewardRate = useSingleCallResult(contract, rewardRateFn, []).result?.[0] ?? 0
   const rewardRate = rewardToken ? CurrencyAmount.fromRawAmount(rewardToken, isFinished ? 0 : _rewardRate) : undefined
   const { data: yearlyRewardUsd } = useUSDPrice(rewardRate?.multiply(BIG_INT_SECONDS_IN_YEAR), rewardToken)
@@ -176,7 +174,9 @@ export const StakeCustom: React.FC = () => {
             size="42px"
             style={{ position: 'absolute', top: '30px', right: 'calc(50% + 112px)' }}
           />
-          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>{token?.symbol} Stake</h2>
+          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>
+            {token?.symbol} {isGoodDollarContract ? 'Savings' : 'Stake'}
+          </h2>
           <div style={{ margin: '10px 0 0 6px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100px' }}>
               <StyledButtonRadio active={staking} onClick={() => setStaking(true)}>
