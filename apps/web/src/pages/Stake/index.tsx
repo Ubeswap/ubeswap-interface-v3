@@ -47,7 +47,7 @@ export const StakePage: React.FC = () => {
         <div style={{ margin: '10px 0 0 6px', display: 'flex', justifyContent: 'center', width: '90%' }}>
           <div style={{ width: '50%', maxWidth: '200px' }}>
             <StyledButtonRadio active={newStake} onClick={() => setNewStake(true)}>
-              New Stake
+              Stake
             </StyledButtonRadio>
           </div>
           <div style={{ width: '50%', maxWidth: '200px' }}>

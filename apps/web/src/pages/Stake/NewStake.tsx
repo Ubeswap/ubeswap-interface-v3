@@ -234,7 +234,7 @@ export const NewStake: React.FC = () => {
             size="42px"
             style={{ position: 'absolute', top: '30px', right: 'calc(50% + 112px)' }}
           />
-          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>New Ube Stake</h2>
+          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>UBE Stake</h2>
           <div style={{ margin: '10px 0 0 6px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100px' }}>
               <StyledButtonRadio active={staking} onClick={() => setStaking(true)}>
