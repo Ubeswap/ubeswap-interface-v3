@@ -4,25 +4,25 @@ import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains'
 
 export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].v3CoreFactoryAddress,
-  [ChainId.CELO_ALFAJORES]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].v3CoreFactoryAddress,
+  [ChainId.CELO_SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 }
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].quoterAddress,
-  [ChainId.CELO_ALFAJORES]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].quoterAddress,
+  [ChainId.CELO_SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 }
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].mixedRouteQuoterV1Address,
-  [ChainId.CELO_ALFAJORES]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].mixedRouteQuoterV1Address,
+  [ChainId.CELO_SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].mixedRouteQuoterV1Address,
 }
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].multicallAddress,
-  [ChainId.CELO_ALFAJORES]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].multicallAddress,
+  [ChainId.CELO_SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 }
 

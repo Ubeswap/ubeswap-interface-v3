@@ -173,7 +173,7 @@ export class TenderlySimulator extends Simulator {
     const currencyIn = swapRoute.trade.inputAmount.currency
     const tokenIn = currencyIn.wrapped
     const chainId = this.chainId
-    if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
+    if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.CELO_SEPOLIA].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!'
       log.info(msg)
       return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported }

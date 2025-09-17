@@ -182,13 +182,13 @@ interface UseIchiVaultsResults {
 export function useIchiVaults(account: string | null | undefined): UseIchiVaultsResults {
   const [data, setData] = useState<(UserAmountsInVault & { vaultInfo: IchiVault })[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { provider } = useWeb3React()
+  const { provider, chainId } = useWeb3React()
 
   const pendingTxs = JSON.stringify(usePendingTransactions())
 
   useEffect(() => {
     let active = true
-    if (account && account.length > 0 && provider) {
+    if (account && account.length > 0 && provider && chainId === 42220) {
       setIsLoading(true)
       ;(async () => {
         try {
@@ -220,7 +220,7 @@ export function useIchiVaults(account: string | null | undefined): UseIchiVaults
     return () => {
       active = false
     }
-  }, [account, pendingTxs, provider])
+  }, [account, pendingTxs, provider, chainId])
 
   return {
     loading: isLoading,
@@ -231,13 +231,13 @@ export function useIchiVaults(account: string | null | undefined): UseIchiVaults
 export function useIchiVaultDetails(vaultAddress: string | undefined) {
   const [data, setData] = useState<IchiVault>()
   const [isLoading, setIsLoading] = useState(true)
-  const { provider } = useWeb3React()
+  const { provider, chainId } = useWeb3React()
 
   const pendingTxs = JSON.stringify(usePendingTransactions())
 
   useEffect(() => {
     let active = true
-    if (vaultAddress && provider) {
+    if (vaultAddress && provider && chainId === 42220) {
       setIsLoading(true)
       ;(async () => {
         try {
@@ -261,7 +261,7 @@ export function useIchiVaultDetails(vaultAddress: string | undefined) {
     return () => {
       active = false
     }
-  }, [vaultAddress, pendingTxs, provider])
+  }, [vaultAddress, pendingTxs, provider, chainId])
 
   return {
     loading: isLoading,

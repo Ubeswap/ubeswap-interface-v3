@@ -6,6 +6,7 @@ import { ProviderConfig } from '../../../providers/provider'
 import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
+  CUSD_CELO_SEPOLIA,
   DAI_ARBITRUM,
   DAI_AVAX,
   DAI_BNB,
@@ -20,6 +21,7 @@ import {
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
+  USDC_CELO_SEPOLIA,
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
   USDC_MAINNET,
@@ -61,6 +63,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
   [ChainId.CELO]: [CUSD_CELO],
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
+  [ChainId.CELO_SEPOLIA]: [USDC_CELO_SEPOLIA, CUSD_CELO_SEPOLIA],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],

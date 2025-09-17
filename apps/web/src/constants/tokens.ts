@@ -62,6 +62,13 @@ export const USDC_POLYGON_MUMBAI = new Token(
   'USD Coin'
 )
 export const USDC_CELO = new Token(ChainId.CELO, '0xceba9300f2b948710d2653dd7b07f33a8b32118c', 6, 'USDC', 'USD Coin')
+export const USDC_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x01C5C0122039549AD1493B8220cABEdD739BC44E',
+  6,
+  'USDC',
+  'USDC Token'
+)
 export const USDC_BASE = new Token(ChainId.BASE, '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', 6, 'USDC', 'USD Coin')
 
 export const DAI = new Token(ChainId.MAINNET, '0x6B175474E89094C44Da98b954EedeAC495271d0F', 18, 'DAI', 'Dai Stablecoin')
@@ -223,6 +230,28 @@ export const CEUR_CELO_ALFAJORES = new Token(
   'Celo Euro Stablecoin'
 )
 
+const CELO_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x471EcE3750Da237f93B8E339c536989b8978a438',
+  18,
+  'CELO',
+  'Celo'
+)
+export const CUSD_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80',
+  18,
+  'cUSD',
+  'Celo Dollar'
+)
+export const CEUR_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x6B172e333e2978484261D7eCC3DE491E79764BbC',
+  18,
+  'cEUR',
+  'Celo Euro Stablecoin'
+)
+
 export const USDC_BSC = new Token(ChainId.BNB, '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', 18, 'USDC', 'USDC')
 export const USDT_BSC = new Token(ChainId.BNB, '0x55d398326f99059fF775485246999027B3197955', 18, 'USDT', 'USDT')
 export const ETH_BSC = new Token(ChainId.BNB, '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', 18, 'ETH', 'Ethereum')
@@ -270,6 +299,7 @@ export const UBE: { [chainId: number]: Token } = {
     'UBE',
     'Ubeswap'
   ),
+  [ChainId.CELO_SEPOLIA]: new Token(ChainId.CELO_SEPOLIA, UBE_ADDRESSES[ChainId.CELO_SEPOLIA], 18, 'UBE', 'Ubeswap'),
 }
 
 export const ARB = new Token(ChainId.ARBITRUM_ONE, '0x912CE59144191C1204E64559FE8253a0e49E6548', 18, 'ARB', 'Arbitrum')
@@ -352,6 +382,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token | undefined } =
     'CELO',
     'Celo native asset'
   ),
+  [ChainId.CELO_SEPOLIA]: new Token(
+    ChainId.CELO_SEPOLIA,
+    '0x471ece3750da237f93b8e339c536989b8978a438',
+    18,
+    'CELO',
+    'Celo native asset'
+  ),
   [ChainId.BNB]: new Token(ChainId.BNB, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', 18, 'WBNB', 'Wrapped BNB'),
   [ChainId.AVALANCHE]: new Token(
     ChainId.AVALANCHE,
@@ -364,13 +401,15 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token | undefined } =
 }
 
 export function isCelo(chainId: number): chainId is ChainId.CELO | ChainId.CELO_ALFAJORES {
-  return chainId === ChainId.CELO_ALFAJORES || chainId === ChainId.CELO
+  return chainId === ChainId.CELO_ALFAJORES || chainId === ChainId.CELO || chainId === ChainId.CELO_SEPOLIA
 }
 
 function getCeloNativeCurrency(chainId: number) {
   switch (chainId) {
     case ChainId.CELO_ALFAJORES:
       return CELO_CELO_ALFAJORES
+    case ChainId.CELO_SEPOLIA:
+      return CELO_CELO_SEPOLIA
     case ChainId.CELO:
       return CELO_CELO
     default:
@@ -497,6 +536,7 @@ export const TOKEN_SHORTHANDS: { [shorthand: string]: { [chainId in ChainId]?: s
     [ChainId.BASE]: USDC_BASE.address,
     [ChainId.CELO]: USDC_CELO.address,
     [ChainId.CELO_ALFAJORES]: USDC_CELO.address,
+    [ChainId.CELO_SEPOLIA]: USDC_CELO_SEPOLIA.address,
     [ChainId.GOERLI]: USDC_GOERLI.address,
     [ChainId.SEPOLIA]: USDC_SEPOLIA.address,
     [ChainId.AVALANCHE]: USDC_AVALANCHE.address,
@@ -513,9 +553,9 @@ const STABLECOINS: { [chainId in ChainId]: Token[] } = {
   [ChainId.POLYGON_MUMBAI]: [USDC_POLYGON_MUMBAI],
   [ChainId.BNB]: [USDC_BSC],
   [ChainId.BASE]: [USDC_BASE],
-  [ChainId.CELO]: [USDC_CELO],
+  [ChainId.CELO]: [CUSD_CELO, USDC_CELO],
   [ChainId.CELO_ALFAJORES]: [USDC_CELO],
-  [ChainId.CELO_SEPOLIA]: [USDC_CELO],
+  [ChainId.CELO_SEPOLIA]: [CUSD_CELO_SEPOLIA, USDC_CELO_SEPOLIA],
   [ChainId.GOERLI]: [USDC_GOERLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA],
   [ChainId.AVALANCHE]: [USDC_AVALANCHE],

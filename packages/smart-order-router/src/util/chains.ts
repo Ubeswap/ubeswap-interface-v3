@@ -12,6 +12,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.GOERLI,
   ChainId.SEPOLIA,
   ChainId.CELO_ALFAJORES,
+  ChainId.CELO_SEPOLIA,
   ChainId.CELO,
   ChainId.BNB,
   ChainId.AVALANCHE,
@@ -65,6 +66,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.CELO
     case 44787:
       return ChainId.CELO_ALFAJORES
+    case 11142220:
+      return ChainId.CELO_SEPOLIA
     case 100:
       return ChainId.GNOSIS
     case 1284:
@@ -92,6 +95,7 @@ export enum ChainName {
   POLYGON_MUMBAI = 'polygon-mumbai',
   CELO = 'celo-mainnet',
   CELO_ALFAJORES = 'celo-alfajores',
+  CELO_SEPOLIA = 'celo-sepolia',
   GNOSIS = 'gnosis-mainnet',
   MOONBEAM = 'moonbeam-mainnet',
   BNB = 'bnb-mainnet',
@@ -123,6 +127,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.POLYGON_MUMBAI]: ['MATIC', '0x0000000000000000000000000000000000001010'],
   [ChainId.CELO]: ['CELO'],
   [ChainId.CELO_ALFAJORES]: ['CELO'],
+  [ChainId.CELO_SEPOLIA]: ['CELO'],
   [ChainId.GNOSIS]: ['XDAI'],
   [ChainId.MOONBEAM]: ['GLMR'],
   [ChainId.BNB]: ['BNB', 'BNB', '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'],
@@ -142,6 +147,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
   [ChainId.CELO]: NativeCurrencyName.CELO,
   [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
+  [ChainId.CELO_SEPOLIA]: NativeCurrencyName.CELO,
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
   [ChainId.BNB]: NativeCurrencyName.BNB,
@@ -175,6 +181,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.CELO
     case 44787:
       return ChainName.CELO_ALFAJORES
+    case 11142220:
+      return ChainName.CELO_SEPOLIA
     case 100:
       return ChainName.GNOSIS
     case 1284:
@@ -191,41 +199,6 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
 }
 
 export const CHAIN_IDS_LIST = Object.values(ChainId).map((c) => c.toString()) as string[]
-
-export const ID_TO_PROVIDER = (id: ChainId): string => {
-  switch (id) {
-    case ChainId.MAINNET:
-      return process.env.JSON_RPC_PROVIDER!
-    case ChainId.GOERLI:
-      return process.env.JSON_RPC_PROVIDER_GORLI!
-    case ChainId.SEPOLIA:
-      return process.env.JSON_RPC_PROVIDER_SEPOLIA!
-    case ChainId.OPTIMISM:
-      return process.env.JSON_RPC_PROVIDER_OPTIMISM!
-    case ChainId.OPTIMISM_GOERLI:
-      return process.env.JSON_RPC_PROVIDER_OPTIMISM_GOERLI!
-    case ChainId.ARBITRUM_ONE:
-      return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!
-    case ChainId.ARBITRUM_GOERLI:
-      return process.env.JSON_RPC_PROVIDER_ARBITRUM_GOERLI!
-    case ChainId.POLYGON:
-      return process.env.JSON_RPC_PROVIDER_POLYGON!
-    case ChainId.POLYGON_MUMBAI:
-      return process.env.JSON_RPC_PROVIDER_POLYGON_MUMBAI!
-    case ChainId.CELO:
-      return process.env.JSON_RPC_PROVIDER_CELO!
-    case ChainId.CELO_ALFAJORES:
-      return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!
-    case ChainId.BNB:
-      return process.env.JSON_RPC_PROVIDER_BNB!
-    case ChainId.AVALANCHE:
-      return process.env.JSON_RPC_PROVIDER_AVALANCHE!
-    case ChainId.BASE:
-      return process.env.JSON_RPC_PROVIDER_BASE!
-    default:
-      throw new Error(`Chain id: ${id} not supported`)
-  }
-}
 
 const WETH = new Token(1, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 18, 'WETH', 'Wrapped Ether')
 export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
@@ -275,8 +248,8 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
 }
 
-function isCelo(chainId: number): chainId is ChainId.CELO | ChainId.CELO_ALFAJORES {
-  return chainId === ChainId.CELO_ALFAJORES || chainId === ChainId.CELO
+function isCelo(chainId: number): chainId is ChainId.CELO | ChainId.CELO_ALFAJORES | ChainId.CELO_SEPOLIA {
+  return chainId === ChainId.CELO_ALFAJORES || chainId === ChainId.CELO || chainId === ChainId.CELO_SEPOLIA
 }
 
 class CeloNativeCurrency extends NativeCurrency {
@@ -302,7 +275,9 @@ class CeloNativeCurrency extends NativeCurrency {
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY) {
-      return WRAPPED_NATIVE_CURRENCY[this.chainId as ChainId.MAINNET | ChainId.CELO | ChainId.CELO_ALFAJORES]
+      return WRAPPED_NATIVE_CURRENCY[
+        this.chainId as ChainId.MAINNET | ChainId.CELO | ChainId.CELO_ALFAJORES | ChainId.CELO_SEPOLIA
+      ]
     }
     throw new Error('Unsupported chain ID')
   }

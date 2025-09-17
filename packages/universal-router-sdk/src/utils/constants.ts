@@ -27,6 +27,12 @@ const CHAIN_CONFIGS: { [key: number]: ChainConfig } = {
     weth: WETH_NOT_SUPPORTED_ON_CHAIN,
     creationBlock: 25670593,
   },
+  // celo sepolia
+  [11142220]: {
+    router: '0x52faa44b2426A762021A520B6cb2aaeCEc7e937d',
+    weth: WETH_NOT_SUPPORTED_ON_CHAIN,
+    creationBlock: 25670593, //TODO: update with actual block
+  },
 }
 
 export const UNIVERSAL_ROUTER_ADDRESS = (chainId: number): string => {

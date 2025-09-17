@@ -39,6 +39,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId: ChainId): AlphaRouterCo
     case ChainId.ARBITRUM_GOERLI:
     case ChainId.CELO:
     case ChainId.CELO_ALFAJORES:
+    case ChainId.CELO_SEPOLIA:
       return {
         v2PoolSelection: {
           topN: 3,

@@ -20,6 +20,7 @@ const CLIENT_SIDE_ROUTING_ALLOW_LIST = [
   ChainId.GOERLI,
   ChainId.SEPOLIA,
   ChainId.CELO_ALFAJORES,
+  ChainId.CELO_SEPOLIA,
   ChainId.CELO,
   ChainId.BNB,
   ChainId.AVALANCHE,

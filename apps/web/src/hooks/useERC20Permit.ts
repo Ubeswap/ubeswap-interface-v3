@@ -41,6 +41,9 @@ const PERMITTABLE_TOKENS: {
   [ChainId.CELO_ALFAJORES]: {
     [UBE[ChainId.CELO_ALFAJORES].address]: { type: PermitType.AMOUNT, name: 'Ubeswap' },
   },
+  [ChainId.CELO_SEPOLIA]: {
+    [UBE[ChainId.CELO_SEPOLIA].address]: { type: PermitType.AMOUNT, name: 'Ubeswap' },
+  },
 }
 
 enum UseERC20PermitState {

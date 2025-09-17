@@ -13,7 +13,7 @@ type ChainAddresses = {
   mixedRouteQuoterV1Address?: string
 }
 
-const DEFAULT_NETWORKS = [ChainId.CELO, ChainId.CELO_ALFAJORES]
+const DEFAULT_NETWORKS = [ChainId.CELO, ChainId.CELO_SEPOLIA]
 
 function constructSameAddressMap(address: string, additionalNetworks: ChainId[] = []): AddressMap {
   return DEFAULT_NETWORKS.concat(additionalNetworks).reduce<AddressMap>((memo, chainId) => {
@@ -25,23 +25,19 @@ function constructSameAddressMap(address: string, additionalNetworks: ChainId[] 
 export const UBE_ADDRESSES: AddressMap = {
   [ChainId.CELO]: '0x71e26d0E519D14591b9dE9a0fE9513A398101490',
   [ChainId.CELO_ALFAJORES]: '0x00Be915B9dCf56a3CBE739D9B9c202ca692409EC',
+  [ChainId.CELO_SEPOLIA]: '0x3BeaaC603b445C7E8AdC46B3867404e1Bde9E047',
 }
 
-/**
- * @deprecated use V2_FACTORY_ADDRESSES instead
- */
-export const V2_FACTORY_ADDRESS = '0x62d5b84be28a183abb507e125b384122d2c25fae'
 export const V2_FACTORY_ADDRESSES: AddressMap = {
   // [ChainId.MAINNET]: '0x62d5b84be28a183abb507e125b384122d2c25fae',
   [ChainId.CELO]: '0x62d5b84be28a183abb507e125b384122d2c25fae',
+  [ChainId.CELO_SEPOLIA]: '0x1CA64F0ea9355bb208E1a0DC3BC058556a80Dc86',
 }
-/**
- * @deprecated use V2_ROUTER_ADDRESSES instead
- */
-export const V2_ROUTER_ADDRESS = '0xE3D8bd6Aed4F159bc8000a9cD47CffDb95F96121'
+
 export const V2_ROUTER_ADDRESSES: AddressMap = {
   // [ChainId.MAINNET]: '0xE3D8bd6Aed4F159bc8000a9cD47CffDb95F96121',
   [ChainId.CELO]: '0xE3D8bd6Aed4F159bc8000a9cD47CffDb95F96121',
+  [ChainId.CELO_SEPOLIA]: '0x8270ff13b13dEe056bd0EaAB6E914aaf8030898f',
 }
 
 // Networks that share most of the same addresses i.e. Mainnet, Goerli, Optimism, Arbitrum, Polygon
@@ -69,9 +65,20 @@ const CELO_ADDRESSES: ChainAddresses = {
   mixedRouteQuoterV1Address: '0x1f34a843832044A085bB9cAe48cc7294D5478FAA',
 }
 
+const CELO_SEPOLIA_ADDRESSES: ChainAddresses = {
+  v3CoreFactoryAddress: '0xb1B7Df1fA99Dd9E2f32f13128232766cC964bdDC',
+  multicallAddress: '0xb4D8D033d0FE89a09a907cb0A9852CDD8512F006',
+  quoterAddress: '0xa91236B420866066C7D0c151A293b1d008173cd0',
+  v3MigratorAddress: '0x75dBAa89DaBe84Ff4Baa0362b26EfD64C4b1051c',
+  nonfungiblePositionManagerAddress: '0xb178deF6aeaBb437E161B252b7BF213A1C864e32',
+  tickLensAddress: '0x2D2dB98D17acE0912580A11F4FccC439E9BCf493',
+  swapRouter02Address: '0xb46CaDb6a79c7d6E5876Df7F481A7379E075c01b',
+  mixedRouteQuoterV1Address: '0x81862d31A64139eF309F99688A71b0f0AD4BB785',
+}
+
 export const CHAIN_TO_ADDRESSES_MAP: Record<SupportedChainsType, ChainAddresses> = {
   [ChainId.CELO]: CELO_ADDRESSES,
-  [ChainId.CELO_SEPOLIA]: CELO_ADDRESSES,
+  [ChainId.CELO_SEPOLIA]: CELO_SEPOLIA_ADDRESSES,
 }
 
 /* V3 Contract Addresses */
@@ -180,8 +187,11 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number) => {
 }
 
 export const UNIVERSAL_ROUTER_ADDRESS = (chainId: number) => {
-  if (SUPPORTED_CHAINS.includes(chainId)) {
+  if (chainId === ChainId.CELO) {
     return '0x3C255DED9B25f0BFB4EF1D14234BD2514d7A7A0d'
+  }
+  if (chainId === ChainId.CELO_SEPOLIA) {
+    return '0x52faa44b2426A762021A520B6cb2aaeCEc7e937d'
   }
   return ''
 }

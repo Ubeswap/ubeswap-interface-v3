@@ -45,6 +45,7 @@ export const printV2SubgraphPool = (s: V2SubgraphPool) => `${s.token0.id}/${s.to
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
   [ChainId.CELO]: 'https://interface-gateway.ubeswap.org/v1/v3-subgraph-proxy',
+  [ChainId.CELO_SEPOLIA]: 'https://interface-gateway.ubeswap.org/v1/v3-subgraph-proxy',
 }
 
 const PAGE_SIZE = 1000 // 1k is max possible query size from subgraph.
@@ -57,6 +58,58 @@ const PAGE_SIZE = 1000 // 1k is max possible query size from subgraph.
  */
 export interface IV3SubgraphProvider {
   getPools(tokenIn?: Token, tokenOut?: Token, providerConfig?: ProviderConfig): Promise<V3SubgraphPool[]>
+}
+
+interface PairInfoBackend {
+  address: string
+  version: 2 | 3
+  token0: string
+  token1: string
+  feeTier: string
+  supply: number
+  tvlUSD: number
+  tvlETH: number
+  reserve0: number
+  reserve1: number
+  symbol0: string
+  symbol1: string
+}
+async function fetchPairsFromBackend(chainId: ChainId): Promise<RawV3SubgraphPool[]> {
+  try {
+    const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        operationName: 'PairsV3',
+        variables: { chainId },
+        query: '',
+      }),
+    })
+    const data = (await res.json()) as PairInfoBackend[]
+    return data.map((p) => {
+      return {
+        id: p.address.toLowerCase(),
+        feeTier: p.feeTier,
+        liquidity: p.supply.toString(),
+        token0: {
+          id: p.token0.toLowerCase(),
+          symbol: p.symbol0,
+        },
+        token1: {
+          id: p.token1.toLowerCase(),
+          symbol: p.symbol1,
+        },
+        totalValueLockedUSD: p.tvlUSD.toString(),
+        totalValueLockedETH: p.tvlETH.toString(),
+      } as RawV3SubgraphPool
+    })
+  } catch (e) {
+    console.log(e)
+  }
+  return []
 }
 
 export class V3SubgraphProvider implements IV3SubgraphProvider {
@@ -117,6 +170,10 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           let lastId = ''
           let pools: RawV3SubgraphPool[] = []
           let poolsPage: RawV3SubgraphPool[] = []
+
+          if (this.chainId === ChainId.CELO_SEPOLIA) {
+            return fetchPairsFromBackend(this.chainId)
+          }
 
           do {
             const poolsResult = await this.client.request<{

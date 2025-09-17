@@ -400,6 +400,36 @@ export const CEUR_CELO_ALFAJORES = new Token(
   'Celo Euro Stablecoin'
 )
 
+// Celo Sepolia Tokens
+export const CELO_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x471EcE3750Da237f93B8E339c536989b8978a438',
+  18,
+  'CELO',
+  'Celo'
+)
+export const CUSD_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80',
+  18,
+  'cUSD',
+  'Celo Dollar'
+)
+export const CEUR_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x6B172e333e2978484261D7eCC3DE491E79764BbC',
+  18,
+  'cEUR',
+  'Celo Euro Stablecoin'
+)
+export const USDC_CELO_SEPOLIA = new Token(
+  ChainId.CELO_SEPOLIA,
+  '0x01C5C0122039549AD1493B8220cABEdD739BC44E',
+  6,
+  'USDC',
+  'USDC Token'
+)
+
 // Avalanche Tokens
 export const DAI_AVAX = new Token(
   ChainId.AVALANCHE,
@@ -626,97 +656,8 @@ export class TokenProvider implements ITokenProvider {
   }
 }
 
-export const DAI_ON = (chainId: ChainId): Token => {
-  switch (chainId) {
-    case ChainId.MAINNET:
-      return DAI_MAINNET
-    case ChainId.GOERLI:
-      return DAI_GOERLI
-    case ChainId.SEPOLIA:
-      return DAI_SEPOLIA
-    case ChainId.OPTIMISM:
-      return DAI_OPTIMISM
-    case ChainId.OPTIMISM_GOERLI:
-      return DAI_OPTIMISM_GOERLI
-    case ChainId.ARBITRUM_ONE:
-      return DAI_ARBITRUM
-    case ChainId.ARBITRUM_GOERLI:
-      return DAI_ARBITRUM_GOERLI
-    case ChainId.POLYGON:
-      return DAI_POLYGON
-    case ChainId.POLYGON_MUMBAI:
-      return DAI_POLYGON_MUMBAI
-    case ChainId.CELO:
-      return DAI_CELO
-    case ChainId.CELO_ALFAJORES:
-      return DAI_CELO_ALFAJORES
-    case ChainId.MOONBEAM:
-      return DAI_MOONBEAM
-    case ChainId.BNB:
-      return DAI_BNB
-    case ChainId.AVALANCHE:
-      return DAI_AVAX
-    default:
-      throw new Error(`Chain id: ${chainId} not supported`)
-  }
-}
-
-export const USDT_ON = (chainId: ChainId): Token => {
-  switch (chainId) {
-    case ChainId.MAINNET:
-      return USDT_MAINNET
-    case ChainId.GOERLI:
-      return USDT_GOERLI
-    case ChainId.OPTIMISM:
-      return USDT_OPTIMISM
-    case ChainId.OPTIMISM_GOERLI:
-      return USDT_OPTIMISM_GOERLI
-    case ChainId.ARBITRUM_ONE:
-      return USDT_ARBITRUM
-    case ChainId.BNB:
-      return USDT_BNB
-    default:
-      throw new Error(`Chain id: ${chainId} not supported`)
-  }
-}
-
-export const USDC_ON = (chainId: ChainId): Token => {
-  switch (chainId) {
-    case ChainId.MAINNET:
-      return USDC_MAINNET
-    case ChainId.GOERLI:
-      return USDC_GOERLI
-    case ChainId.SEPOLIA:
-      return USDC_SEPOLIA
-    case ChainId.OPTIMISM:
-      return USDC_OPTIMISM
-    case ChainId.OPTIMISM_GOERLI:
-      return USDC_OPTIMISM_GOERLI
-    case ChainId.ARBITRUM_ONE:
-      return USDC_ARBITRUM
-    case ChainId.ARBITRUM_GOERLI:
-      return USDC_ARBITRUM_GOERLI
-    case ChainId.POLYGON:
-      return USDC_POLYGON
-    case ChainId.POLYGON_MUMBAI:
-      return USDC_POLYGON_MUMBAI
-    case ChainId.GNOSIS:
-      return USDC_ETHEREUM_GNOSIS
-    case ChainId.MOONBEAM:
-      return USDC_MOONBEAM
-    case ChainId.BNB:
-      return USDC_BNB
-    case ChainId.AVALANCHE:
-      return USDC_AVAX
-    case ChainId.BASE:
-      return USDC_BASE
-    case ChainId.BASE_GOERLI:
-      return USDC_BASE_GOERLI
-    default:
-      throw new Error(`Chain id: ${chainId} not supported`)
-  }
-}
-
-export const WNATIVE_ON = (chainId: ChainId.MAINNET | ChainId.CELO | ChainId.CELO_ALFAJORES): Token => {
+export const WNATIVE_ON = (
+  chainId: ChainId.MAINNET | ChainId.CELO | ChainId.CELO_ALFAJORES | ChainId.CELO_SEPOLIA
+): Token => {
   return WRAPPED_NATIVE_CURRENCY[chainId]
 }

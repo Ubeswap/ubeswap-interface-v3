@@ -98,6 +98,7 @@ export const CHAIN_ID_TO_BACKEND_NAME: { [key: number]: InterfaceGqlChain } = {
   [ChainId.POLYGON_MUMBAI]: Chain.Polygon,
   [ChainId.CELO]: Chain.Celo,
   [ChainId.CELO_ALFAJORES]: Chain.Celo,
+  [ChainId.CELO_SEPOLIA]: Chain.Celo,
   [ChainId.ARBITRUM_ONE]: Chain.Arbitrum,
   [ChainId.ARBITRUM_GOERLI]: Chain.Arbitrum,
   [ChainId.OPTIMISM]: Chain.Optimism,

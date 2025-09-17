@@ -545,6 +545,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           break
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
+        case ChainId.CELO_SEPOLIA:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,

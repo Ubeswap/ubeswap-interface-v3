@@ -38,6 +38,7 @@ type RawV2SubgraphPool = {
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev',
   [ChainId.CELO]: 'https://interface-gateway.ubeswap.org/v1/v2-subgraph-proxy',
+  [ChainId.CELO_SEPOLIA]: 'https://interface-gateway.ubeswap.org/v1/v2-subgraph-proxy',
 }
 
 const threshold = 0.025
@@ -52,6 +53,57 @@ const PAGE_SIZE = 1000 // 1k is max possible query size from subgraph.
  */
 export interface IV2SubgraphProvider {
   getPools(tokenIn?: Token, tokenOut?: Token, providerConfig?: ProviderConfig): Promise<V2SubgraphPool[]>
+}
+
+interface PairInfoBackend {
+  address: string
+  version: 2 | 3
+  token0: string
+  token1: string
+  feeTier: string
+  supply: number
+  tvlUSD: number
+  tvlETH: number
+  reserve0: number
+  reserve1: number
+  symbol0: string
+  symbol1: string
+}
+async function fetchPairsFromBackend(chainId: ChainId): Promise<RawV2SubgraphPool[]> {
+  try {
+    const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        operationName: 'PairsV2',
+        variables: { chainId },
+        query: '',
+      }),
+    })
+    const data = (await res.json()) as PairInfoBackend[]
+    return data.map((p) => {
+      return {
+        id: p.address.toLowerCase(),
+        token0: {
+          id: p.token0.toLowerCase(),
+          symbol: p.symbol0,
+        },
+        token1: {
+          id: p.token1.toLowerCase(),
+          symbol: p.symbol1,
+        },
+        totalSupply: p.supply.toString(),
+        trackedReserveUSD: p.tvlUSD.toString(),
+        reserveUSD: p.tvlUSD.toString(),
+      } as RawV2SubgraphPool
+    })
+  } catch (e) {
+    console.log(e)
+  }
+  return []
 }
 
 export class V2SubgraphProvider implements IV2SubgraphProvider {
@@ -138,8 +190,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             )
           } while (pairsPage.length > 0)*/
 
-          const res = await fetch('https://raw.githubusercontent.com/Ubeswap/static/main/ubeswap-v2-pools.json')
-          return (await res.json()) as RawV2SubgraphPool[]
+          //const res = await fetch('https://raw.githubusercontent.com/Ubeswap/static/main/ubeswap-v2-pools.json')
+          //return (await res.json()) as RawV2SubgraphPool[]
+          return fetchPairsFromBackend(this.chainId)
         }
 
         /* eslint-disable no-useless-catch */
