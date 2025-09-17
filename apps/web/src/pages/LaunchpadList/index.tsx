@@ -1,23 +1,21 @@
 import { BrowserEvent, InterfaceElementName, InterfacePageName, SharedEventName } from '@ubeswap/analytics-events'
+import { ChainId } from '@ubeswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { Trace, TraceEvent } from 'analytics'
-import { AutoRow } from 'components/Row'
+import { AutoColumn } from 'components/Column'
+import Row, { AutoRow } from 'components/Row'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from 'components/Tokens/constants'
-import { Trans, t } from 'i18n'
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Info } from 'react-feather'
-import styled, { useTheme } from 'styled-components'
-import { StyledInternalLink, ThemedText } from 'theme/components'
-import LaunchpadHeader from './LaunchpadHeader'
-
-import Row from 'components/Row'
-
 import { manualChainOutageAtom } from 'featureFlags/flags/outageBanner'
 import { validateUrlChainParam } from 'graphql/data/util'
+import { Trans, t } from 'i18n'
 import { useResetAtom } from 'jotai/utils'
-import { ArrowRightCircle } from 'react-feather'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, ArrowRightCircle, Info } from 'react-feather'
 import { Link } from 'react-router-dom'
-import { ClickableStyle } from 'theme/components'
+import styled, { useTheme } from 'styled-components'
+import { ClickableStyle, StyledInternalLink, ThemedText } from 'theme/components'
 import { Chain } from 'uniswap/src/data/graphql/uniswap-data-api/__generated__/types-and-hooks'
+import LaunchpadHeader from './LaunchpadHeader'
 import { useLaunchpadParams } from './redirects'
 import { ActiveLaunchpadTable, CompletedLaunchpadTable } from './tables/FarmTable/index'
 
@@ -175,9 +173,59 @@ function LearnMore() {
   )
 }
 
+const MainContentWrapper = styled.main`
+  background-color: ${({ theme }) => theme.surface1};
+  border: 1px solid ${({ theme }) => theme.surface3};
+  padding: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`
+const ErrorContainer = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: auto;
+  max-width: 300px;
+  min-height: 25vh;
+`
+const NetworkIcon = styled(AlertTriangle)`
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.5rem;
+`
+function WrongNetworkCard() {
+  const theme = useTheme()
+
+  return (
+    <>
+      <EarnContainer>
+        <LaunchpadHeader />
+        <AutoColumn gap="lg" justify="center">
+          <AutoColumn gap="lg" style={{ width: '100%' }}>
+            <MainContentWrapper>
+              <ErrorContainer>
+                <ThemedText.BodyPrimary color={theme.neutral3} textAlign="center">
+                  <NetworkIcon strokeWidth={1.2} />
+                  <div data-testid="pools-unsupported-err">
+                    <Trans>Your connected network is unsupported.</Trans>
+                  </div>
+                </ThemedText.BodyPrimary>
+              </ErrorContainer>
+            </MainContentWrapper>
+          </AutoColumn>
+        </AutoColumn>
+      </EarnContainer>
+    </>
+  )
+}
+
 const EarnPage = ({ initialTab }: { initialTab?: LaunchpadTab }) => {
   const tabNavRef = useRef<HTMLDivElement>(null)
   const resetManualOutage = useResetAtom(manualChainOutageAtom)
+  const { chainId } = useWeb3React()
 
   const initialKey: number = useMemo(() => {
     const key = initialTab && Pages.findIndex((page) => page.key === initialTab)
@@ -210,6 +258,10 @@ const EarnPage = ({ initialTab }: { initialTab?: LaunchpadTab }) => {
   }, [resetManualOutage, tab])
 
   const { component: Page } = Pages[currentTab]
+
+  if (chainId === ChainId.CELO_SEPOLIA) {
+    return <WrongNetworkCard />
+  }
 
   return (
     <Trace page={InterfacePageName.EXPLORE_PAGE} properties={{ chainName: chain }} shouldLogImpression>

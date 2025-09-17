@@ -1,10 +1,14 @@
 import { BrowserEvent, InterfaceElementName, InterfacePageName, SharedEventName } from '@ubeswap/analytics-events'
+import { ChainId } from '@ubeswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import { Trace, TraceEvent } from 'analytics'
+import { AutoColumn } from 'components/Column'
 import { AutoRow } from 'components/Row'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from 'components/Tokens/constants'
 import { Trans } from 'i18n'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import styled from 'styled-components'
+import { AlertTriangle } from 'react-feather'
+import styled, { useTheme } from 'styled-components'
 import { StyledInternalLink, ThemedText } from 'theme/components'
 import EarnHeader from './EarnHeader'
 import { ActiveFarmTable, InactiveFarmTable } from './tables/FarmTable'
@@ -140,9 +144,59 @@ const Pages: Array<Page> = [
 //   )
 // }
 
+const MainContentWrapper = styled.main`
+  background-color: ${({ theme }) => theme.surface1};
+  border: 1px solid ${({ theme }) => theme.surface3};
+  padding: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`
+const ErrorContainer = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: auto;
+  max-width: 300px;
+  min-height: 25vh;
+`
+const NetworkIcon = styled(AlertTriangle)`
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.5rem;
+`
+function WrongNetworkCard() {
+  const theme = useTheme()
+
+  return (
+    <>
+      <EarnContainer>
+        <EarnHeader />
+        <AutoColumn gap="lg" justify="center">
+          <AutoColumn gap="lg" style={{ width: '100%' }}>
+            <MainContentWrapper>
+              <ErrorContainer>
+                <ThemedText.BodyPrimary color={theme.neutral3} textAlign="center">
+                  <NetworkIcon strokeWidth={1.2} />
+                  <div data-testid="pools-unsupported-err">
+                    <Trans>Your connected network is unsupported.</Trans>
+                  </div>
+                </ThemedText.BodyPrimary>
+              </ErrorContainer>
+            </MainContentWrapper>
+          </AutoColumn>
+        </AutoColumn>
+      </EarnContainer>
+    </>
+  )
+}
+
 const EarnPage = ({ initialTab }: { initialTab?: EarnTab }) => {
   const tabNavRef = useRef<HTMLDivElement>(null)
   const resetManualOutage = useResetAtom(manualChainOutageAtom)
+  const { chainId } = useWeb3React()
 
   const initialKey: number = useMemo(() => {
     const key = initialTab && Pages.findIndex((page) => page.key === initialTab)
@@ -188,6 +242,10 @@ const EarnPage = ({ initialTab }: { initialTab?: EarnTab }) => {
   //     [navigate, tab]
   //   )
   // )
+
+  if (chainId === ChainId.CELO_SEPOLIA) {
+    return <WrongNetworkCard />
+  }
 
   return (
     <Trace page={InterfacePageName.EXPLORE_PAGE} properties={{ chainName: chain }} shouldLogImpression>

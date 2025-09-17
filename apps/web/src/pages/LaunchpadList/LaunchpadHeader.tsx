@@ -1,3 +1,5 @@
+import { ChainId } from '@ubeswap/sdk-core'
+import { useWeb3React } from '@web3-react/core'
 import bannerUrl from 'assets/svg/ubestarter-launchpad.svg'
 import Row from 'components/Row'
 import { Trans } from 'i18n'
@@ -132,13 +134,14 @@ function LearnMore() {
 }
 
 const LaunchpadHeader = () => {
+  const { chainId } = useWeb3React()
   return (
     <BannerContainer>
       <BannerMainArea>
         <HeaderContainer>
           UbeStarter
           <HeaderDetails>Discover new tokens on Celo Network</HeaderDetails>
-          <LearnMore />
+          {chainId == ChainId.CELO && <LearnMore />}
         </HeaderContainer>
         <Image src={bannerUrl} />
       </BannerMainArea>
