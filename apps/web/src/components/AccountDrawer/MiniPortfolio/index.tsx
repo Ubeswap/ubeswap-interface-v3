@@ -1,4 +1,5 @@
 import { BrowserEvent, InterfaceElementName, InterfaceSectionName, SharedEventName } from '@ubeswap/analytics-events'
+import { useWeb3React } from '@web3-react/core'
 import { Trace, TraceEvent } from 'analytics'
 import Column from 'components/Column'
 import { LoaderV2 } from 'components/Icons/LoadingSpinner'
@@ -14,7 +15,7 @@ import { ThemedText } from 'theme/components'
 import { atom, useAtom } from 'jotai'
 import { ActivityTab } from './Activity'
 import { usePendingActivity } from './Activity/hooks'
-import NFTs from './NFTs'
+//import NFTs from './NFTs'
 import Pools from './Pools'
 import { PortfolioRowWrapper } from './PortfolioRow'
 import Tokens from './Tokens'
@@ -75,19 +76,32 @@ const Pages: Array<Page> = [
   {
     title: <Trans>Tokens</Trans>,
     key: 'tokens',
-    component: Tokens,
+    component: function PoolsWithFallback() {
+      const { chainId } = useWeb3React()
+      if (chainId !== 42220) {
+        return <div style={{ padding: '16px' }}>Tokens are only available on Celo Network</div>
+      }
+      return <Tokens />
+    },
     loggingElementName: InterfaceElementName.MINI_PORTFOLIO_TOKENS_TAB,
   },
   {
     title: <Trans>NFTs</Trans>,
     key: 'nfts',
-    component: NFTs,
+    //component: NFTs,
+    component: () => <div>-</div>,
     loggingElementName: InterfaceElementName.MINI_PORTFOLIO_NFT_TAB,
   },
   {
     title: <Trans>Pools</Trans>,
     key: 'pools',
-    component: Pools,
+    component: function PoolsWithFallback({ account }: { account: string }) {
+      const { chainId } = useWeb3React()
+      if (chainId !== 42220) {
+        return <div style={{ padding: '16px' }}>Pools are only available on Celo Network</div>
+      }
+      return <Pools account={account} />
+    },
     loggingElementName: InterfaceElementName.MINI_PORTFOLIO_POOLS_TAB,
   },
   {
