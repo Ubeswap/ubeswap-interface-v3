@@ -145,6 +145,19 @@ export function useInactiveFarms(sortState: FarmTableSortState, chainId?: ChainI
   }, [farms, tokens, sortState])
 
   const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
+  filteredFarms.unshift({
+    hash: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c-v3',
+    farmAddress: '0xA6E9069CB055a425Eb41D185b740B22Ec8f51853',
+    poolAddress: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c',
+    token0: tokens['0x2E6C05f1f7D1f4Eb9A088bf12257f1647682b754'],
+    token1: tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'],
+    token0Amount: new Fraction(0),
+    token1Amount: new Fraction(0),
+    tvl: 0,
+    apr: new Percent(0),
+    feeTier: V2_BIPS,
+    protocolVersion: 'V3',
+  } as TableFarm)
   return { farms: filteredFarms, loading }
 }
 
@@ -177,7 +190,6 @@ const whitelistedPools = [
   '0x6ade22bd1d73c7162df10e06b51dbc725e2d44a2', // CELO-USDT 1%
   '0x1ef76d432280c837e5668f582c82de8f6ca4024d', // CELO-UBE 0.3%
   '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341', // USDGLO-G$ 1%
-  '0x1e283e3cb1ffcbd92551867cfed10b712f52878c', // REGEN-CELO 0.3%
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
