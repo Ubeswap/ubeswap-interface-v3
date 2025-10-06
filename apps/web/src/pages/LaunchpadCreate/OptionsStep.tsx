@@ -304,7 +304,7 @@ export default function OptionsStep({ onNext }: { onNext: () => void }) {
   }, [options])
   // ------
 
-  // CELO / UBE / USDT / USDC / cUSD / GLOUSD
+  // CELO / UBE / USDT / USDC / cUSD / GLOUSD / G$
   const quoteTokens: Action[] = [
     {
       id: '0x471EcE3750Da237f93B8E339c536989b8978a438',
@@ -329,6 +329,10 @@ export default function OptionsStep({ onNext }: { onNext: () => void }) {
     {
       id: '0x4F604735c1cF31399C6E711D5962b2B3E0225AD3',
       name: 'GLOUSD',
+    },
+    {
+      id: '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
+      name: 'G$ (GoodDollar)',
     },
   ]
 
