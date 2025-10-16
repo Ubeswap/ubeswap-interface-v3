@@ -1,3 +1,4 @@
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from '@ethersproject/bignumber'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { BrowserEvent, InterfaceElementName, InterfaceEventName, LiquidityEventName } from '@ubeswap/analytics-events'
@@ -324,6 +325,12 @@ function AddLiquidity() {
         }
       }
 
+      const dataSuffix = getReferralTag({
+        user: account as `0x${string}`,
+        consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
+      })
+      txn.data = (txn.data ?? '') + dataSuffix
+
       const connectedChainId = await provider.getSigner().getChainId()
       if (chainId !== connectedChainId) throw new WrongChainError()
 
@@ -354,6 +361,12 @@ function AddLiquidity() {
               }
               addTransaction(response, transactionInfo)
               setTxHash(response.hash)
+              submitReferral({
+                txHash: response.hash as `0x${string}`,
+                chainId: ChainId.CELO,
+              }).catch((error) => {
+                console.error('Divvi error:', error)
+              })
               sendAnalyticsEvent(LiquidityEventName.ADD_LIQUIDITY_SUBMITTED, {
                 label: [currencies[Field.CURRENCY_A]?.symbol, currencies[Field.CURRENCY_B]?.symbol].join('/'),
                 ...trace,
