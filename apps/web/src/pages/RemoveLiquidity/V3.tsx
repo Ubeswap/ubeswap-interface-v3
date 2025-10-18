@@ -1,7 +1,8 @@
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk'
 import { BigNumber } from '@ethersproject/bignumber'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { LiquidityEventName, LiquiditySource } from '@ubeswap/analytics-events'
-import { CurrencyAmount, Percent } from '@ubeswap/sdk-core'
+import { ChainId, CurrencyAmount, Percent } from '@ubeswap/sdk-core'
 import { NonfungiblePositionManager } from '@uniswap/v3-sdk'
 import { useWeb3React } from '@web3-react/core'
 import { sendAnalyticsEvent, useTrace } from 'analytics'
@@ -149,6 +150,12 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
     const connectedChainId = await provider.getSigner().getChainId()
     if (chainId !== connectedChainId) throw new WrongChainError()
 
+    const dataSuffix = getReferralTag({
+      user: account as `0x${string}`,
+      consumer: '0x2c2bc76B97BCe84A5a9c6e2835AB13306B964cf1',
+    })
+    txn.data = (txn.data ?? '') + dataSuffix
+
     provider
       .getSigner()
       .estimateGas(txn)
@@ -168,6 +175,12 @@ function Remove({ tokenId }: { tokenId: BigNumber }) {
               ...trace,
             })
             setTxnHash(response.hash)
+            submitReferral({
+              txHash: response.hash as `0x${string}`,
+              chainId: ChainId.CELO,
+            }).catch((error) => {
+              console.error('Divvi error:', error)
+            })
             setAttemptingTxn(false)
             addTransaction(response, {
               type: TransactionType.REMOVE_LIQUIDITY_V3,
