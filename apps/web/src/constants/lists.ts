@@ -1,4 +1,5 @@
-export const UBE_LIST = 'https://unpkg.com/@ubeswap/default-token-list@latest/ubeswap.token-list.json'
+export const UBE_LIST =
+  'https://raw.githubusercontent.com/Ubeswap/default-token-list/refs/heads/master/ubeswap.token-list.json'
 export const UBE_EXTENDED_LIST =
   'https://unpkg.com/@ubeswap/default-token-list@latest/ubeswap-experimental.token-list.json'
 const UBESWAP_EXTRA_LIST = 'https://raw.githubusercontent.com/Ubeswap/static/main/ube-extra-tokens.json'
