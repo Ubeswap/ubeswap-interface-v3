@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber'
 import { createColumnHelper } from '@tanstack/react-table'
 import { InterfacePageName } from '@ubeswap/analytics-events'
 import { Trace } from 'analytics'
@@ -7,6 +8,7 @@ import { Table } from 'components/Table'
 import { Cell } from 'components/Table/Cell'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from 'components/Tokens/constants'
 import { Trans } from 'i18n'
+import { cachedProposalEvents } from 'pages/Stake/hooks/romulus/cachedStakeEvents'
 import { transparentize } from 'polished'
 import { ReactElement, useMemo } from 'react'
 import { Check, Plus, X } from 'react-feather'
@@ -15,49 +17,75 @@ import { ProposalState } from 'state/governance/hooks'
 import styled from 'styled-components'
 import { ClickableStyle, ExternalLink, ThemedText } from 'theme/components'
 
-// Mock data for proposals
-interface MockProposal {
+// Governance contract address for new UBE token
+const NEW_GOVERNANCE_ADDRESS = '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928'
+
+// Offset for new governance proposals to continue from old numbering (old governance ended at 15)
+const NEW_GOVERNANCE_ID_OFFSET = 15
+
+// Interface for cached proposal events
+interface CachedProposalEvent {
   id: string
   title: string
-  status: ProposalState
-  endTime: Date
-  startTime: Date
+  address: string
+  blockNumber: number
+  args: {
+    id: BigNumber
+    proposer: string
+    description: string
+    startBlock: BigNumber
+    endBlock: BigNumber
+  }
 }
 
-const MOCK_PROPOSALS: MockProposal[] = [
-  {
-    id: '13',
-    title: 'UBE Token Emission Reduction Proposal',
-    status: ProposalState.ACTIVE,
-    startTime: new Date('2026-01-25'),
-    endTime: new Date('2026-02-08'),
-  },
-  {
-    id: '12',
-    title: 'Proposal 12',
-    status: ProposalState.PENDING,
-    startTime: new Date('2026-02-06'),
-    endTime: new Date('2026-02-20'),
-  },
-  {
-    id: '11',
-    title: 'Proposal 11',
-    status: ProposalState.SUCCEEDED,
-    startTime: new Date('2025-12-20'),
-    endTime: new Date('2026-01-10'),
-  },
-  {
-    id: '10',
-    title: 'Proposal 12',
-    status: ProposalState.DEFEATED,
-    startTime: new Date('2025-12-20'),
-    endTime: new Date('2026-01-10'),
-  },
-]
+// Transformed proposal interface
+interface Proposal {
+  id: string
+  title: string
+  description: string
+  status: ProposalState
+  startBlock: number
+  endBlock: number
+  blockNumber: number
+  governanceAddress: string
+}
 
-// Mock voting power
-const MOCK_VOTING_POWER = '1,55 M'
-const MOCK_DELEGATEE = 'Self'
+// Determine proposal status (all cached proposals are historical and already executed)
+function getProposalStatus(): ProposalState {
+  // All cached proposals have already ended, so they're either EXECUTED or DEFEATED
+  // Since we don't have the actual state, we'll mark them as EXECUTED (most passed)
+  // In a real implementation, you'd query the contract for the actual state
+  return ProposalState.EXECUTED
+}
+
+// Transform cached events to proposals
+function transformCachedProposals(): Proposal[] {
+  return (cachedProposalEvents as CachedProposalEvent[])
+    .filter((event) => event.title && event.title.trim() !== '')
+    .map((event) => {
+      const rawProposalId = event.args.id.toNumber()
+      const isNewGovernance = event.address.toLowerCase() === NEW_GOVERNANCE_ADDRESS.toLowerCase()
+
+      // New governance proposals continue numbering from old governance (15 + new id)
+      const displayId = isNewGovernance ? rawProposalId + NEW_GOVERNANCE_ID_OFFSET : rawProposalId
+
+      return {
+        id: displayId.toString(),
+        title: event.title,
+        description: event.args.description,
+        status: getProposalStatus(),
+        startBlock: event.args.startBlock.toNumber(),
+        endBlock: event.args.endBlock.toNumber(),
+        blockNumber: event.blockNumber,
+        governanceAddress: event.address,
+      }
+    })
+    .sort((a, b) => b.blockNumber - a.blockNumber) // Sort by block number descending (newest first)
+}
+
+// Mock voting power (to be replaced with real data)
+const MOCK_VOTING_POWER = '0'
+const MOCK_DELEGATEE = 'Not delegated'
 
 // Styled Components
 const GovernanceContainer = styled.div`
@@ -161,7 +189,7 @@ const RulesLink = styled(ExternalLink)`
 `
 
 const CreateProposalButton = styled(Link)`
-  margin-top: 10px;
+  margin-top: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -348,33 +376,9 @@ function getStatusIcon(status: ProposalState): ReactElement | null {
   }
 }
 
-function formatTimeDisplay(proposal: MockProposal): string {
-  const now = new Date()
-
-  if (proposal.status === ProposalState.PENDING) {
-    const diff = proposal.startTime.getTime() - now.getTime()
-    if (diff > 0) {
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      return `${days}d ${hours}h left for start`
-    }
-  }
-
-  if (proposal.status === ProposalState.ACTIVE) {
-    const diff = proposal.endTime.getTime() - now.getTime()
-    if (diff > 0) {
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      return `${days}d ${hours}h remaining`
-    }
-  }
-
-  // Completed proposals
-  return `Ended at ${proposal.endTime.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })}`
+function formatTimeDisplay(proposal: Proposal): string {
+  // For historical proposals, show the block number
+  return `Block #${proposal.endBlock.toLocaleString()}`
 }
 
 function ProposalTitle({ title }: { title: string }) {
@@ -382,7 +386,7 @@ function ProposalTitle({ title }: { title: string }) {
 }
 
 // Proposals Table Component
-function ProposalsTable({ proposals }: { proposals: MockProposal[] }) {
+function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
   const tableValues: ProposalTableValues[] = useMemo(
     () =>
       proposals.map((proposal) => ({
@@ -476,6 +480,8 @@ function ProposalsTable({ proposals }: { proposals: MockProposal[] }) {
 
 // Main Page Component
 export default function GovernancePage() {
+  const proposals = useMemo(() => transformCachedProposals(), [])
+
   return (
     <Trace page={InterfacePageName.VOTE_PAGE} shouldLogImpression>
       <GovernanceContainer>
@@ -483,7 +489,7 @@ export default function GovernancePage() {
           <HeaderWrapper>
             <HeaderLeft>
               <Title>Ubeswap Governance</Title>
-              <Description>Participate in Ubeswap Governance with you UBE tokens</Description>
+              <Description>Participate in Ubeswap Governance with your UBE tokens</Description>
               <RulesLink href="https://docs.ubeswap.org/governance">See the governance rules...</RulesLink>
               <CreateProposalButton to="/governance/create-proposal">
                 <Row gap="sm" align="center" width="fit-content">
@@ -505,9 +511,9 @@ export default function GovernancePage() {
           </HeaderWrapper>
 
           <ProposalsSection>
-            <SectionTitle>Proposals</SectionTitle>
+            <SectionTitle>Proposals ({proposals.length})</SectionTitle>
             <AutoColumn gap="md">
-              <ProposalsTable proposals={MOCK_PROPOSALS} />
+              <ProposalsTable proposals={proposals} />
             </AutoColumn>
           </ProposalsSection>
         </ContentWrapper>

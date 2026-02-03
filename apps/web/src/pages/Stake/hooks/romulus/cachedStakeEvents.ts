@@ -5,6 +5,7 @@ export const CACHED_PROPOSAL_INFO_BLOCK = 24_400_000
 export const cachedProposalEvents = [
   {
     id: '0x9b0bd4013a78007dde1434f56770eeff4773c8ce766ba19d6716676780a952b1-0',
+    title: 'Genesis Proposal',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7894716,
     transactionHash: '0x9b0bd4013a78007dde1434f56770eeff4773c8ce766ba19d6716676780a952b1',
@@ -30,6 +31,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x3a9c349f937b212233d55dde7c3276ff32590b642e9113d1b0b6a5f3b6f81e8d-0',
+    title: 'UBE Emissions and Reward Weights',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7983230,
     transactionHash: '0x3a9c349f937b212233d55dde7c3276ff32590b642e9113d1b0b6a5f3b6f81e8d',
@@ -56,6 +58,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x9f23933fabc4c475fb656b65905a624a56451c13fefc66778519c1837c076b9c-2',
+    title: 'New UBE Reward Weights',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7984151,
     transactionHash: '0x9f23933fabc4c475fb656b65905a624a56451c13fefc66778519c1837c076b9c',
@@ -82,6 +85,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xaa7597ecd6cee511e29bf401b5bb4fa173a41ba32e7687a1ff0edef4becac863-5',
+    title: 'UBE Buyback and Treasury',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8140279,
     transactionHash: '0xaa7597ecd6cee511e29bf401b5bb4fa173a41ba32e7687a1ff0edef4becac863',
@@ -108,6 +112,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x287178f635649c812722e1fac0f2c05b352b789d056ea80765f1a778f5690275-5',
+    title: 'Poof.cash Dual Staking Reimbursement',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8471238,
     transactionHash: '0x287178f635649c812722e1fac0f2c05b352b789d056ea80765f1a778f5690275',
@@ -134,6 +139,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x2502bd128ac78214346f522acaa8cb7013f19f0d61e79725a2e4534b82941637-8',
+    title: 'Prosperity for All - ImpactMarket Donation',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8851213,
     transactionHash: '0x2502bd128ac78214346f522acaa8cb7013f19f0d61e79725a2e4534b82941637',
@@ -160,6 +166,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xb7d9277a0f1cbb25a8855ba446258fce32a0e2ef68e638a8d666fa4c99dd37c1-37',
+    title: 'UBE Distribution Changes',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8964824,
     transactionHash: '0xb7d9277a0f1cbb25a8855ba446258fce32a0e2ef68e638a8d666fa4c99dd37c1',
@@ -186,6 +193,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x4ce9b3aa47b30b05dc5da90cf251a036220e64f255dead3d769af4a01c3af7ad-11',
+    title: 'Single Staking and Rewards Framework',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 9316487,
     transactionHash: '0x4ce9b3aa47b30b05dc5da90cf251a036220e64f255dead3d769af4a01c3af7ad',
@@ -212,6 +220,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xae8941c0c3c8689d69b78d04dc120f5505302fe09ee13b8e56be33158cb00946-13',
+    title: 'Buyback UBE and Move to Community Fund',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 11856388,
     transactionHash: '0xae8941c0c3c8689d69b78d04dc120f5505302fe09ee13b8e56be33158cb00946',
@@ -271,6 +280,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x4d496455ee789c43e496e5a6e689a04117479b3b953ee2574c6cd06169062270-0',
+    title: 'Community Fund Allocation to Staking Rewards',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 17763385,
     transactionHash: '0x4d496455ee789c43e496e5a6e689a04117479b3b953ee2574c6cd06169062270',
@@ -299,6 +309,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xf5d830816f86d48dfda3c2f1f968d5ce4d99a16702c1617201033b3b75479588-0',
+    title: 'Community Fund Allocation 50%',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18135763,
     transactionHash: '0xf5d830816f86d48dfda3c2f1f968d5ce4d99a16702c1617201033b3b75479588',
@@ -327,6 +338,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x2c682a3da95b78acf38f6a307c1d45d89dcee5f684115e3ee4663ef03bdb933b-4',
+    title: 'Community Fund Allocation (Resubmit)',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18194300,
     transactionHash: '0x2c682a3da95b78acf38f6a307c1d45d89dcee5f684115e3ee4663ef03bdb933b',
@@ -355,6 +367,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x8a61de1c0465b62df8e58e8016b67f259414052ae2bf51c120c1384ea8a3abc3-148',
+    title: 'Enable Cross-Chain Swaps via Squid',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18975618,
     transactionHash: '0x8a61de1c0465b62df8e58e8016b67f259414052ae2bf51c120c1384ea8a3abc3',
@@ -383,6 +396,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xeaba1396a4a5c113f05c83e8527f32f4e9b217036d40fce0d8dca0260dd63358-2',
+    title: 'Replace DAO Administrator',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 20048432,
     transactionHash: '0xeaba1396a4a5c113f05c83e8527f32f4e9b217036d40fce0d8dca0260dd63358',
@@ -411,6 +425,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x6e8b598ac7733c5c0b669e86581551ad1015ff8aeab1a01abe5e95cf244b6a32-191',
+    title: 'DAO Administrator Wallet Replacement',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 23277080,
     transactionHash: '0x6e8b598ac7733c5c0b669e86581551ad1015ff8aeab1a01abe5e95cf244b6a32',
@@ -439,6 +454,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0x07b33dd0be328fa644193aa5dfab29bf25b380b0dcc51fa803cb0602c64c135c-1017',
+    title: 'New UBE Tokenomics',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 24398754,
     transactionHash: '0x07b33dd0be328fa644193aa5dfab29bf25b380b0dcc51fa803cb0602c64c135c',
@@ -480,6 +496,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xd489d296bb58f2f7fe5987887328b38d064f2b1a73c4ed1ca8e0deb7cc857e36-29',
+    title: 'Burn Unconverted UBE Tokens',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 28696533,
     transactionHash: '0xd489d296bb58f2f7fe5987887328b38d064f2b1a73c4ed1ca8e0deb7cc857e36',
@@ -508,6 +525,7 @@ export const cachedProposalEvents = [
   },
   {
     id: '0xa900c1ef3cad2499599d4705c0485dc6871e377bbb9b1ca68a6336a9b1447ce4-56',
+    title: 'Tier-2 CEX Listing Approval',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 29217094,
     transactionHash: '0xa900c1ef3cad2499599d4705c0485dc6871e377bbb9b1ca68a6336a9b1447ce4',
