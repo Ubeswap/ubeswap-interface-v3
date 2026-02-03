@@ -48,6 +48,7 @@ const LaunchpadPage = lazy(() => import('pages/LaunchpadPage'))
 const FarmV3 = lazy(() => import('pages/FarmV3'))
 const Debug = lazy(() => import('pages/Debug'))
 const Governance = lazy(() => import('pages/Governance'))
+const ProposalDetails = lazy(() => import('pages/Governance/ProposalDetails'))
 
 // this is the same svg defined in assets/images/blue-loader.svg
 // it is defined here because the remote asset may not have had time to load when this file is executing
@@ -173,6 +174,15 @@ export const routes: RouteDefinition[] = [
     getElement: () => (
       <Suspense fallback={<LazyLoadSpinner />}>
         <Governance />
+      </Suspense>
+    ),
+  }),
+  createRouteDefinition({
+    path: '/governance/:proposalId',
+    getTitle: () => t`Proposal Details`,
+    getElement: () => (
+      <Suspense fallback={<LazyLoadSpinner />}>
+        <ProposalDetails />
       </Suspense>
     ),
   }),
