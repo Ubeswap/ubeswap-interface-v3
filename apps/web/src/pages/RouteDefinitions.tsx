@@ -47,6 +47,7 @@ const LaunchpadCreate = lazy(() => import('pages/LaunchpadCreate'))
 const LaunchpadPage = lazy(() => import('pages/LaunchpadPage'))
 const FarmV3 = lazy(() => import('pages/FarmV3'))
 const Debug = lazy(() => import('pages/Debug'))
+const Governance = lazy(() => import('pages/Governance'))
 
 // this is the same svg defined in assets/images/blue-loader.svg
 // it is defined here because the remote asset may not have had time to load when this file is executing
@@ -165,6 +166,15 @@ export const routes: RouteDefinition[] = [
     path: '/create-proposal',
     getTitle: () => t`Create a new governance proposal on Ubeswap`,
     getElement: () => <Navigate to="/vote/create-proposal" replace />,
+  }),
+  createRouteDefinition({
+    path: '/governance',
+    getTitle: () => t`Ubeswap Governance`,
+    getElement: () => (
+      <Suspense fallback={<LazyLoadSpinner />}>
+        <Governance />
+      </Suspense>
+    ),
   }),
   createRouteDefinition({
     path: '/send',
