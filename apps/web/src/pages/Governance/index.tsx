@@ -8,6 +8,7 @@ import { Table } from 'components/Table'
 import { Cell } from 'components/Table/Cell'
 import { MAX_WIDTH_MEDIA_BREAKPOINT } from 'components/Tokens/constants'
 import { Trans } from 'i18n'
+import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { cachedProposalEvents } from 'pages/Stake/hooks/romulus/cachedStakeEvents'
 import { transparentize } from 'polished'
 import { ReactElement, useMemo } from 'react'
@@ -50,16 +51,21 @@ interface Proposal {
   governanceAddress: string
 }
 
-// Determine proposal status (all cached proposals are historical and already executed)
-function getProposalStatus(): ProposalState {
-  // All cached proposals have already ended, so they're either EXECUTED or DEFEATED
-  // Since we don't have the actual state, we'll mark them as EXECUTED (most passed)
-  // In a real implementation, you'd query the contract for the actual state
-  return ProposalState.EXECUTED
+// Determine proposal status based on block numbers
+function getProposalStatus(startBlock: number, endBlock: number, currentBlock: number): ProposalState {
+  if (currentBlock < startBlock) {
+    return ProposalState.PENDING
+  } else if (currentBlock >= startBlock && currentBlock <= endBlock) {
+    return ProposalState.ACTIVE
+  } else {
+    // All historical proposals have ended, mark as EXECUTED (most passed)
+    // In a real implementation, you'd query the contract for the actual state
+    return ProposalState.EXECUTED
+  }
 }
 
 // Transform cached events to proposals
-function transformCachedProposals(): Proposal[] {
+function transformCachedProposals(currentBlock: number): Proposal[] {
   return (cachedProposalEvents as CachedProposalEvent[])
     .filter((event) => event.title && event.title.trim() !== '')
     .map((event) => {
@@ -69,13 +75,16 @@ function transformCachedProposals(): Proposal[] {
       // New governance proposals continue numbering from old governance (15 + new id)
       const displayId = isNewGovernance ? rawProposalId + NEW_GOVERNANCE_ID_OFFSET : rawProposalId
 
+      const startBlock = event.args.startBlock.toNumber()
+      const endBlock = event.args.endBlock.toNumber()
+
       return {
         id: displayId.toString(),
         title: event.title,
         description: event.args.description,
-        status: getProposalStatus(),
-        startBlock: event.args.startBlock.toNumber(),
-        endBlock: event.args.endBlock.toNumber(),
+        status: getProposalStatus(startBlock, endBlock, currentBlock),
+        startBlock,
+        endBlock,
         blockNumber: event.blockNumber,
         governanceAddress: event.address,
       }
@@ -480,7 +489,8 @@ function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
 
 // Main Page Component
 export default function GovernancePage() {
-  const proposals = useMemo(() => transformCachedProposals(), [])
+  const currentBlock = useBlockNumber()
+  const proposals = useMemo(() => transformCachedProposals(currentBlock ?? 0), [currentBlock])
 
   return (
     <Trace page={InterfacePageName.VOTE_PAGE} shouldLogImpression>
