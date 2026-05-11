@@ -8,6 +8,7 @@ export const cachedProposalEvents = [
     title: 'Genesis Proposal',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7894716,
+    timestamp: 1627048273000, // Jul-23-2021 02:24:33 PM UTC
     transactionHash: '0x9b0bd4013a78007dde1434f56770eeff4773c8ce766ba19d6716676780a952b1',
     transactionIndex: 0,
     blockHash: '0x89a880e6e3fcec737e00c77e4ddc2f84145c7f545d247e8e49e7cd9387147b03',
@@ -34,6 +35,7 @@ export const cachedProposalEvents = [
     title: 'UBE Emissions and Reward Weights',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7983230,
+    timestamp: 1627492885000, // Jul-28-2021 05:21:25 PM UTC
     transactionHash: '0x3a9c349f937b212233d55dde7c3276ff32590b642e9113d1b0b6a5f3b6f81e8d',
     transactionIndex: 0,
     blockHash: '0x70e71894299d879b67bd356f474b58afe2ef5c36cae32a65bffad38db32d86fb',
@@ -61,6 +63,7 @@ export const cachedProposalEvents = [
     title: 'New UBE Reward Weights',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 7984151,
+    timestamp: 1627497455000, // Jul-28-2021 06:37:35 PM UTC
     transactionHash: '0x9f23933fabc4c475fb656b65905a624a56451c13fefc66778519c1837c076b9c',
     transactionIndex: 1,
     blockHash: '0x8d4b1907a7b0d709f547b63dfa1b9890225867ad5e2855d5b4866cebecd9d829',
@@ -88,6 +91,7 @@ export const cachedProposalEvents = [
     title: 'UBE Buyback and Treasury',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8140279,
+    timestamp: 1628275821000, // Aug-06-2021 07:30:21 PM UTC
     transactionHash: '0xaa7597ecd6cee511e29bf401b5bb4fa173a41ba32e7687a1ff0edef4becac863',
     transactionIndex: 2,
     blockHash: '0x355aa1cc66f70e3fa288acad5fae7d1d46e5d7bff96a1a422e243e9353076153',
@@ -115,6 +119,7 @@ export const cachedProposalEvents = [
     title: 'Poof.cash Dual Staking Reimbursement',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8471238,
+    timestamp: 1629932823000, // Aug-25-2021 11:10:23 PM UTC
     transactionHash: '0x287178f635649c812722e1fac0f2c05b352b789d056ea80765f1a778f5690275',
     transactionIndex: 1,
     blockHash: '0x086672b49f5912d6ef96c98f0dc52740d7a2f9adbcf34d5b1886fe404a5a9cab',
@@ -142,6 +147,7 @@ export const cachedProposalEvents = [
     title: 'Prosperity for All - ImpactMarket Donation',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8851213,
+    timestamp: 1631836502000, // Sep-16-2021 10:55:02 PM UTC
     transactionHash: '0x2502bd128ac78214346f522acaa8cb7013f19f0d61e79725a2e4534b82941637',
     transactionIndex: 1,
     blockHash: '0xac50aa04ef8ad9f24d727eb11db6aa5f79caf9e537bd91d57c6dfd1edccda45f',
@@ -169,6 +175,7 @@ export const cachedProposalEvents = [
     title: 'UBE Distribution Changes',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 8964824,
+    timestamp: 1632401970000, // Sep-23-2021 12:42:50 PM UTC
     transactionHash: '0xb7d9277a0f1cbb25a8855ba446258fce32a0e2ef68e638a8d666fa4c99dd37c1',
     transactionIndex: 5,
     blockHash: '0xa5eea8ee9dd8fc4908d1628852a4bb7120d08c7cc28b52ce15349f93bc259529',
@@ -196,6 +203,7 @@ export const cachedProposalEvents = [
     title: 'Single Staking and Rewards Framework',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 9316487,
+    timestamp: 1634159422000, // Oct-13-2021 09:10:22 PM UTC
     transactionHash: '0x4ce9b3aa47b30b05dc5da90cf251a036220e64f255dead3d769af4a01c3af7ad',
     transactionIndex: 2,
     blockHash: '0x95622342fdb6fc5c2c22025c21de44da589bb678180551d092f09ca6d66573be',
@@ -223,6 +231,7 @@ export const cachedProposalEvents = [
     title: 'Buyback UBE and Move to Community Fund',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 11856388,
+    timestamp: 1646860604000, // Mar-09-2022 09:16:44 PM UTC
     transactionHash: '0xae8941c0c3c8689d69b78d04dc120f5505302fe09ee13b8e56be33158cb00946',
     transactionIndex: 4,
     blockHash: '0xf5029cb541eaf19367f992f5ceec483a363b57c12ff4169ac3d0d7da3f041466',
@@ -283,6 +292,7 @@ export const cachedProposalEvents = [
     title: 'Community Fund Allocation to Staking Rewards',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 17763385,
+    timestamp: 1676484989000, // Feb-15-2023 06:16:29 PM UTC
     transactionHash: '0x4d496455ee789c43e496e5a6e689a04117479b3b953ee2574c6cd06169062270',
     transactionIndex: 0,
     blockHash: '0x88e4dbf939716c02c509aa1aa0a1b35854f834664ca810f57a5f0a455d3b232a',
@@ -312,6 +322,7 @@ export const cachedProposalEvents = [
     title: 'Community Fund Allocation 50%',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18135763,
+    timestamp: 1678347570000, // Mar-09-2023 07:29:30 AM UTC
     transactionHash: '0xf5d830816f86d48dfda3c2f1f968d5ce4d99a16702c1617201033b3b75479588',
     transactionIndex: 0,
     blockHash: '0xa49d63f53eac8b0970339146c45d8846eb323248a2317b0a7064f6cf8fd44e12',
@@ -341,6 +352,7 @@ export const cachedProposalEvents = [
     title: 'Community Fund Allocation (Resubmit)',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18194300,
+    timestamp: 1678636055000, // Mar-12-2023 04:47:35 PM UTC
     transactionHash: '0x2c682a3da95b78acf38f6a307c1d45d89dcee5f684115e3ee4663ef03bdb933b',
     transactionIndex: 1,
     blockHash: '0xa847ed4b900252fe87497b24ef0e09ba4c304663dd692eafe7badea58b889a99',
@@ -370,6 +382,7 @@ export const cachedProposalEvents = [
     title: 'Enable Cross-Chain Swaps via Squid',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 18975618,
+    timestamp: 1682545101000, // Apr-26-2023 09:58:21 PM UTC
     transactionHash: '0x8a61de1c0465b62df8e58e8016b67f259414052ae2bf51c120c1384ea8a3abc3',
     transactionIndex: 3,
     blockHash: '0x010d855eaac9be3b56f591ea693b488ebf8a3cab1ea8aad44ab9289856215169',
@@ -399,6 +412,7 @@ export const cachedProposalEvents = [
     title: 'Replace DAO Administrator',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 20048432,
+    timestamp: 1687910434000, // Jun-28-2023 12:00:34 AM UTC
     transactionHash: '0xeaba1396a4a5c113f05c83e8527f32f4e9b217036d40fce0d8dca0260dd63358',
     transactionIndex: 3,
     blockHash: '0xd10455a4339b1a64883cf41bd8052ecc79580848b850036d9cc8e0a1089fe28d',
@@ -428,6 +442,7 @@ export const cachedProposalEvents = [
     title: 'DAO Administrator Wallet Replacement',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 23277080,
+    timestamp: 1704055047000, // Dec-31-2023 08:37:27 PM UTC
     transactionHash: '0x6e8b598ac7733c5c0b669e86581551ad1015ff8aeab1a01abe5e95cf244b6a32',
     transactionIndex: 96,
     blockHash: '0x12f6c0043e46ec3a8b89e99937dfa122af73bee9f33a696114c545fff4219300',
@@ -457,6 +472,7 @@ export const cachedProposalEvents = [
     title: 'New UBE Tokenomics',
     address: '0xa7581d8e26007f4d2374507736327f5b46dd6ba8',
     blockNumber: 24398754,
+    timestamp: 1709664185000, // Mar-05-2024 06:43:05 PM UTC
     transactionHash: '0x07b33dd0be328fa644193aa5dfab29bf25b380b0dcc51fa803cb0602c64c135c',
     transactionIndex: 1,
     blockHash: '0x0e4682d8da76d2bbd4d1c90257ae05e374a513f82cfe955ec23564f8d804fbbc',
@@ -499,6 +515,7 @@ export const cachedProposalEvents = [
     title: 'Burn Unconverted UBE Tokens',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 28696533,
+    timestamp: 1731157556000, // Nov-09-2024 12:25:56 PM UTC
     transactionHash: '0xd489d296bb58f2f7fe5987887328b38d064f2b1a73c4ed1ca8e0deb7cc857e36',
     transactionIndex: 13,
     blockHash: '0x0e4682d8da76d2bbd4d1c90257ae05e374a513f82cfe955ec23564f8d804fbbc',
@@ -528,6 +545,7 @@ export const cachedProposalEvents = [
     title: 'Tier-2 CEX Listing Approval',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 29217094,
+    timestamp: 1733758570000, // Dec-09-2024 03:36:10 PM UTC
     transactionHash: '0xa900c1ef3cad2499599d4705c0485dc6871e377bbb9b1ca68a6336a9b1447ce4',
     transactionIndex: 56,
     blockHash: '0xf177a5dc99ec78d829cc10d96c22576819b6182c419efe1c37fe7929e5716520',
@@ -558,6 +576,7 @@ export const cachedProposalEvents = [
     title: 'Example Active Proposal - Liquidity Mining Rewards Extension',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 58200000,
+    timestamp: 1738540800000, // Feb-03-2025 (example)
     transactionHash: '0xexample_active_proposal_hash_001',
     transactionIndex: 1,
     blockHash: '0xexample_active_block_hash_001',
@@ -588,6 +607,7 @@ export const cachedProposalEvents = [
     title: 'Example Pending Proposal - Protocol Fee Adjustment',
     address: '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928',
     blockNumber: 58230000,
+    timestamp: 1738627200000, // Feb-04-2025 (example)
     transactionHash: '0xexample_pending_proposal_hash_002',
     transactionIndex: 2,
     blockHash: '0xexample_pending_block_hash_002',

@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { createColumnHelper } from '@tanstack/react-table'
 import { InterfacePageName } from '@ubeswap/analytics-events'
+import { useWeb3React } from '@web3-react/core'
 import { Trace } from 'analytics'
 import { AutoColumn } from 'components/Column'
 import Row from 'components/Row'
@@ -14,9 +15,10 @@ import { transparentize } from 'polished'
 import { ReactElement, useMemo } from 'react'
 import { Check, Plus, X } from 'react-feather'
 import { Link } from 'react-router-dom'
-import { ProposalState } from 'state/governance/hooks'
+import { ProposalState, useUserDelegatee, useUserVotes } from 'state/governance/hooks'
 import styled from 'styled-components'
 import { ClickableStyle, ExternalLink, ThemedText } from 'theme/components'
+import { shortenAddress } from 'utilities/src/addresses'
 
 // Governance contract address for new UBE token
 const NEW_GOVERNANCE_ADDRESS = '0xD355A00220FbA16b69Cd8C4fbE16E02CA855f928'
@@ -30,6 +32,7 @@ interface CachedProposalEvent {
   title: string
   address: string
   blockNumber: number
+  timestamp?: number
   args: {
     id: BigNumber
     proposer: string
@@ -48,6 +51,7 @@ interface Proposal {
   startBlock: number
   endBlock: number
   blockNumber: number
+  timestamp?: number
   governanceAddress: string
 }
 
@@ -86,15 +90,25 @@ function transformCachedProposals(currentBlock: number): Proposal[] {
         startBlock,
         endBlock,
         blockNumber: event.blockNumber,
+        timestamp: event.timestamp,
         governanceAddress: event.address,
       }
     })
-    .sort((a, b) => b.blockNumber - a.blockNumber) // Sort by block number descending (newest first)
+    .sort((a, b) => (b.timestamp ?? b.blockNumber) - (a.timestamp ?? a.blockNumber)) // Sort by timestamp descending (newest first)
 }
 
-// Mock voting power (to be replaced with real data)
-const MOCK_VOTING_POWER = '0'
-const MOCK_DELEGATEE = 'Not delegated'
+// Format voting power for display
+function formatVotingPower(votes: string | undefined): string {
+  if (!votes) return '0'
+  const num = parseFloat(votes)
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(2) + 'M'
+  }
+  if (num >= 1_000) {
+    return (num / 1_000).toFixed(2) + 'K'
+  }
+  return num.toFixed(2)
+}
 
 // Styled Components
 const GovernanceContainer = styled.div`
@@ -386,7 +400,16 @@ function getStatusIcon(status: ProposalState): ReactElement | null {
 }
 
 function formatTimeDisplay(proposal: Proposal): string {
-  // For historical proposals, show the block number
+  // If timestamp is available, show formatted date
+  if (proposal.timestamp) {
+    const date = new Date(proposal.timestamp)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+  // Fallback to block number if no timestamp
   return `Block #${proposal.endBlock.toLocaleString()}`
 }
 
@@ -489,8 +512,28 @@ function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
 
 // Main Page Component
 export default function GovernancePage() {
+  const { account } = useWeb3React()
   const currentBlock = useBlockNumber()
   const proposals = useMemo(() => transformCachedProposals(currentBlock ?? 0), [currentBlock])
+
+  // Get user's voting power and delegatee
+  const { votes, loading: votesLoading } = useUserVotes()
+  const delegatee = useUserDelegatee()
+
+  // Format voting power display
+  const votingPowerDisplay = useMemo(() => {
+    if (!account) return '0'
+    if (votesLoading) return '...'
+    return formatVotingPower(votes?.toExact())
+  }, [account, votes, votesLoading])
+
+  // Format delegatee display
+  const delegateeDisplay = useMemo(() => {
+    if (!account) return 'Connect wallet'
+    if (!delegatee) return 'Not delegated'
+    if (delegatee.toLowerCase() === account.toLowerCase()) return 'Self'
+    return shortenAddress(delegatee)
+  }, [account, delegatee])
 
   return (
     <Trace page={InterfacePageName.VOTE_PAGE} shouldLogImpression>
@@ -511,11 +554,11 @@ export default function GovernancePage() {
             <VotingPowerCard>
               <VotingPowerLabel>Your Current Voting Power</VotingPowerLabel>
               <Row align="baseline">
-                <VotingPowerValue>{MOCK_VOTING_POWER}</VotingPowerValue>
-                <VotingPowerUnit>votes</VotingPowerUnit>
+                <VotingPowerValue>{votingPowerDisplay}</VotingPowerValue>
+                <VotingPowerUnit>UBE</VotingPowerUnit>
               </Row>
               <DelegatedTo>
-                Delegated to: {MOCK_DELEGATEE} <EditLink to="/governance/delegate">(edit)</EditLink>
+                Delegated to: {delegateeDisplay} <EditLink to="/governance/delegate">(edit)</EditLink>
               </DelegatedTo>
             </VotingPowerCard>
           </HeaderWrapper>
