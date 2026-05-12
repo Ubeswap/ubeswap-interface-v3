@@ -36,6 +36,7 @@ const TokenDetails = lazy(() => import('pages/TokenDetails'))
 const Vote = lazy(() => import('pages/Vote'))
 const Stake = lazy(() => import('pages/Stake'))
 const StakeCustom = lazy(() => import('pages/StakeCustom'))
+const StakeStreaming = lazy(() => import('pages/StakeStreaming'))
 const AddProposal = lazy(() => import('pages/Stake/AddProposal'))
 const FarmManage = lazy(() => import('pages/Farm/Manage'))
 const FarmManageSingle = lazy(() => import('pages/Farm/ManageSingle'))
@@ -357,6 +358,11 @@ export const routes: RouteDefinition[] = [
     path: '/stakes/:contractAddress',
     getElement: () => <StakeCustom />,
     getTitle: () => t`Stake Token`,
+  }),
+  createRouteDefinition({
+    path: '/streaming-stakes/:contractAddress',
+    getElement: () => <StakeStreaming />,
+    getTitle: () => t`Streaming Stake`,
   }),
   createRouteDefinition({
     path: '/add-proposal',
