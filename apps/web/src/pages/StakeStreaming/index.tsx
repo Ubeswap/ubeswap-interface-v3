@@ -33,6 +33,7 @@ const SAVINGS_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function totalSupply() view returns (uint256)',
   'function getEffectiveFlowRate() view returns (int96)',
+  'function rewardRate() view returns (uint256)',
   'function getDailyRewards() view returns (uint256)',
   'function periodFinish() view returns (uint256)',
   'function pool() view returns (address)',
@@ -73,6 +74,9 @@ const OP_TYPE = {
 const HOST_ADDRESS = '0xA4Ff07cF81C02CFD356184879D953970cA957585'
 const GDA_FORWARDER_ADDRESS = '0x308b7405272d11494716e30C6E972DbF6fb89555'
 
+const NEW_GOODDOLLAR_STAKE = '0x059ee811414230d1fb157878d2b491240f4d8d3b'
+const OLD_GOODDOLLAR_STAKE = '0x799a23da264a157db6f9c02be62f82ce8d602a45'
+
 const SECONDS_PER_DAY = 86400
 const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY
 
@@ -93,12 +97,25 @@ const Wrapper = styled.div({
   margin: '0px 24px',
 })
 
+const MigrateAlert = styled.div`
+  margin: 16px 8px -16px 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 184, 0, 0.12);
+  border: 1px solid rgba(255, 184, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`
+
 export const StakeStreaming: React.FC = () => {
   const { account, chainId, provider } = useWeb3React()
   const { contractAddress } = useParams<{ contractAddress: string }>()
   const { formatPercent } = useFormatter()
 
   const savingsContract = useContract(contractAddress, SAVINGS_ABI, true)
+
+  const isGoodDollarContract = contractAddress?.toLowerCase() === NEW_GOODDOLLAR_STAKE
 
   const superTokenAddr = useSingleCallResult(savingsContract, 'superToken', undefined, NEVER_RELOAD).result?.[0] as
     | string
@@ -112,11 +129,14 @@ export const StakeStreaming: React.FC = () => {
   const superTokenContract = useContract(superTokenAddr, SUPER_TOKEN_ABI, false)
   const poolContract = useContract(poolAddr, POOL_ABI, false)
   const gdaForwarder = useContract(GDA_FORWARDER_ADDRESS, GDA_FORWARDER_ABI, false)
+  const oldStakeContract = useContract(isGoodDollarContract ? OLD_GOODDOLLAR_STAKE : undefined, SAVINGS_ABI, true)
 
   const [, toggleAccountDrawer] = useAccountDrawer()
   const [amount, setAmount] = useState('')
   const [staking, setStaking] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migratingAmount, setMigratingAmount] = useState<BigNumber | undefined>(undefined)
 
   const tokenAmount = tryParseCurrencyAmount(amount === '' ? '0' : amount, token ?? undefined)
 
@@ -129,9 +149,8 @@ export const StakeStreaming: React.FC = () => {
   const allowanceRaw = useSingleCallResult(superTokenContract, 'allowance', [account ?? undefined, contractAddress])
     .result?.[0] as BigNumber | undefined
   const totalSupplyRaw = useSingleCallResult(savingsContract, 'totalSupply', []).result?.[0] as BigNumber | undefined
-  const effectiveFlowRateRaw = useSingleCallResult(savingsContract, 'getEffectiveFlowRate', []).result?.[0] as
-    | BigNumber
-    | undefined
+  const rewardRateFn = isGoodDollarContract ? 'getEffectiveFlowRate' : 'rewardRate'
+  const rewardRateRaw = useSingleCallResult(savingsContract, rewardRateFn, []).result?.[0] as BigNumber | undefined
   const userFlowRateRaw = useSingleCallResult(poolContract, 'getMemberFlowRate', [account ?? undefined]).result?.[0] as
     | BigNumber
     | undefined
@@ -141,11 +160,15 @@ export const StakeStreaming: React.FC = () => {
     poolAddr ?? undefined,
     account ?? undefined,
   ]).result?.[0] as boolean | undefined
+  const oldStakeRaw = useSingleCallResult(oldStakeContract, 'balanceOf', [account ?? undefined]).result?.[0] as
+    | BigNumber
+    | undefined
 
   const userFlowRate = userFlowRateRaw ?? BigNumber.from(0)
-  const effectiveFlowRate = effectiveFlowRateRaw ?? BigNumber.from(0)
+  const rewardRate = rewardRateRaw ?? BigNumber.from(0)
   const totalSupplyBN = totalSupplyRaw ?? BigNumber.from(0)
   const stakeBalanceBN = stakeRaw ?? BigNumber.from(0)
+  const hasOldStake = !!(oldStakeRaw && oldStakeRaw.gt(0))
 
   // Real-time tick (1s)
   const [now, setNow] = useState(() => Date.now())
@@ -183,37 +206,32 @@ export const StakeStreaming: React.FC = () => {
   const poolShare = new Percent(poolShareBP, 10_000)
 
   const aprBP =
-    totalSupplyBN.gt(0) && effectiveFlowRate.gt(0)
-      ? effectiveFlowRate.mul(SECONDS_PER_YEAR).mul(10000).div(totalSupplyBN).toNumber()
+    totalSupplyBN.gt(0) && rewardRate.gt(0)
+      ? rewardRate.mul(SECONDS_PER_YEAR).mul(10000).div(totalSupplyBN).toNumber()
       : 0
   const apr = new Percent(aprBP, 10_000)
 
   const addTransaction = useTransactionAdder()
   const signer = provider?.getSigner()
 
-  const onStakeClick = useCallback(async () => {
-    if (!signer || !tokenAmount || !contractAddress || !superTokenAddr || !poolAddr || !token) {
-      return
-    }
-    setSubmitting(true)
-    try {
-      const stakeBN = BigNumber.from(tokenAmount.quotient.toString())
+  const stakeWithBatchCall = useCallback(
+    async (amountBN: BigNumber, summary: string) => {
+      if (!signer || !contractAddress || !superTokenAddr || !poolAddr) {
+        return undefined
+      }
       const operations: Array<{
         operationType: number
         target: string
         data: string
       }> = []
 
-      console.log('allowanceRaw', allowanceRaw?.toString())
-      if (!allowanceRaw || allowanceRaw.lt(stakeBN)) {
+      if (!allowanceRaw || allowanceRaw.lt(amountBN)) {
         operations.push({
           operationType: OP_TYPE.ERC20_APPROVE,
           target: superTokenAddr,
           data: defaultAbiCoder.encode(['address', 'uint256'], [contractAddress, MaxUint256]),
         })
       }
-
-      console.log('isConnectedRaw', isConnectedRaw)
 
       if (!isConnectedRaw) {
         const connectPoolCall = gdaIface.encodeFunctionData('connectPool', [poolAddr, '0x'])
@@ -227,36 +245,36 @@ export const StakeStreaming: React.FC = () => {
       operations.push({
         operationType: OP_TYPE.ERC2771_FORWARD_CALL,
         target: contractAddress,
-        data: savingsIface.encodeFunctionData('stake', [stakeBN]),
+        data: savingsIface.encodeFunctionData('stake', [amountBN]),
       })
-      console.log('operations', operations)
 
       const host = new Contract(HOST_ADDRESS, HOST_ABI, signer)
       const tx = await host.batchCall(operations)
-
       addTransaction(tx, {
         type: TransactionType.CUSTOM,
-        summary: `Stake ${amount} ${token.symbol}`,
+        summary,
       })
       await tx.wait()
+      return tx
+    },
+    [signer, contractAddress, superTokenAddr, poolAddr, allowanceRaw, isConnectedRaw, addTransaction]
+  )
+
+  const onStakeClick = useCallback(async () => {
+    if (!tokenAmount || !token) {
+      return
+    }
+    setSubmitting(true)
+    try {
+      const stakeBN = BigNumber.from(tokenAmount.quotient.toString())
+      await stakeWithBatchCall(stakeBN, `Stake ${amount} ${token.symbol}`)
       setAmount('')
     } catch (err) {
       console.error('Stake error', err)
     } finally {
       setSubmitting(false)
     }
-  }, [
-    signer,
-    tokenAmount,
-    contractAddress,
-    superTokenAddr,
-    poolAddr,
-    token,
-    allowanceRaw,
-    isConnectedRaw,
-    amount,
-    addTransaction,
-  ])
+  }, [stakeWithBatchCall, tokenAmount, token, amount])
 
   const onUnstakeClick = useCallback(async () => {
     if (!signer || !tokenAmount || !contractAddress || !token) {
@@ -281,13 +299,41 @@ export const StakeStreaming: React.FC = () => {
     }
   }, [signer, tokenAmount, contractAddress, token, stakeRaw, amount, addTransaction])
 
+  const onMigrateClick = useCallback(async () => {
+    if (!signer || !oldStakeRaw || !token) {
+      return
+    }
+    setMigrating(true)
+    setMigratingAmount(oldStakeRaw)
+    try {
+      const oldStake = new Contract(OLD_GOODDOLLAR_STAKE, SAVINGS_ABI, signer)
+      const exitTx = await oldStake.exit()
+      addTransaction(exitTx, {
+        type: TransactionType.CUSTOM,
+        summary: `Exit old ${token.symbol} stake`,
+      })
+      await exitTx.wait()
+
+      await stakeWithBatchCall(oldStakeRaw, `Migrate ${token.symbol} into Savings`)
+    } catch (err) {
+      console.error('Migrate error', err)
+    } finally {
+      setMigrating(false)
+      setMigratingAmount(undefined)
+    }
+  }, [signer, oldStakeRaw, token, stakeWithBatchCall, addTransaction])
+
   const isAmountValid = !isNaN(Number(amount)) && Number(amount) > 0
 
   let button = <ButtonLight onClick={() => toggleAccountDrawer()}>{t('Connect Wallet')}</ButtonLight>
   if (account) {
     if (staking) {
       button = (
-        <ButtonPrimary onClick={onStakeClick} disabled={!isAmountValid || submitting} altDisabledStyle={submitting}>
+        <ButtonPrimary
+          onClick={onStakeClick}
+          disabled={!isAmountValid || submitting || migrating}
+          altDisabledStyle={submitting}
+        >
           {submitting ? (
             <AutoRow gap="6px" justify="center">
               {t('Staking')} <Loader stroke="white" />
@@ -299,7 +345,11 @@ export const StakeStreaming: React.FC = () => {
       )
     } else {
       button = (
-        <ButtonPrimary onClick={onUnstakeClick} disabled={!isAmountValid || submitting} altDisabledStyle={submitting}>
+        <ButtonPrimary
+          onClick={onUnstakeClick}
+          disabled={!isAmountValid || submitting || migrating}
+          altDisabledStyle={submitting}
+        >
           {submitting ? (
             <AutoRow gap="6px" justify="center">
               {t('Unstaking')} <Loader stroke="white" />
@@ -315,6 +365,40 @@ export const StakeStreaming: React.FC = () => {
   return (
     <>
       <TopSection gap="lg" justify="center">
+        {((hasOldStake && oldStakeRaw) || migrating) && token && (
+          <MigrateAlert>
+            <Text fontWeight={600} fontSize={14}>
+              {t('You have {{amount}} {{symbol}} staked in the previous savings.', {
+                amount: Number(
+                  CurrencyAmount.fromRawAmount(
+                    token,
+                    (migratingAmount ?? oldStakeRaw ?? BigNumber.from(0)).toString()
+                  ).toSignificant(6)
+                ).toLocaleString('en-US'),
+                symbol: token.symbol ?? '',
+              })}
+            </Text>
+            <Text fontSize={12}>
+              {t(
+                'Migration will be done in 2 steps, first exiting your stake from the old contract, then staking the same amount into the new contract.'
+              )}
+            </Text>
+            <ButtonPrimary
+              onClick={onMigrateClick}
+              disabled={migrating || submitting}
+              altDisabledStyle={migrating}
+              padding="8px"
+            >
+              {migrating ? (
+                <AutoRow gap="6px" justify="center">
+                  {t('Migrating')} <Loader stroke="white" />
+                </AutoRow>
+              ) : (
+                t('Migrate')
+              )}
+            </ButtonPrimary>
+          </MigrateAlert>
+        )}
         <BodyWrapper>
           <CurrencyLogo
             currency={token}
@@ -325,7 +409,9 @@ export const StakeStreaming: React.FC = () => {
               right: 'calc(50% + 112px)',
             }}
           />
-          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>{token?.symbol} Savings</h2>
+          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>
+            {token?.symbol} {isGoodDollarContract ? 'Savings' : 'Staking'}
+          </h2>
           <div
             style={{
               margin: '10px 0 0 6px',
