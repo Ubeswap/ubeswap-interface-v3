@@ -33,6 +33,8 @@ export interface TableStake {
   tvl: number
   apr: Percent
   isActive: boolean
+  isCapped: boolean
+  isStreaming: boolean
 }
 
 export enum StakeSortFields {
@@ -77,6 +79,8 @@ interface StakeInfo {
   tvl: number
   apr: number
   isActive: boolean
+  isCapped: boolean
+  isStreaming: boolean
 }
 
 async function fetchStakes(): Promise<StakeInfo[] | undefined> {
@@ -119,6 +123,8 @@ export function useStakes(sortState: StakeTableSortState, isActive: boolean, cha
         tvl: 0,
         apr: 0,
         isActive: true,
+        isCapped: false,
+        isStreaming: false,
       },
       {
         stakingRewardAddress: '0x8585A611521717Ffe7d93cF264DbE936E484DBa0',
@@ -127,6 +133,8 @@ export function useStakes(sortState: StakeTableSortState, isActive: boolean, cha
         tvl: 0,
         apr: 0,
         isActive: false,
+        isCapped: false,
+        isStreaming: false,
       },
       {
         stakingRewardAddress: '0xfB8cA52748E70F887E9B8C5ffBb611D1eA4cC725',
@@ -135,6 +143,28 @@ export function useStakes(sortState: StakeTableSortState, isActive: boolean, cha
         tvl: 0,
         apr: 0,
         isActive: false,
+        isCapped: false,
+        isStreaming: false,
+      },
+      {
+        stakingRewardAddress: '0x799a23dA264A157Db6F9c02BE62F82CE8d602A45',
+        stakingToken: '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
+        rewardTokens: ['0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'],
+        tvl: 0,
+        apr: 0,
+        isActive: false,
+        isCapped: true,
+        isStreaming: false,
+      },
+      {
+        stakingRewardAddress: '0x059ee811414230d1Fb157878D2b491240F4D8d3B',
+        stakingToken: '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A',
+        rewardTokens: ['0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'],
+        tvl: 0,
+        apr: 0,
+        isActive: true,
+        isCapped: true,
+        isStreaming: true,
       },
     ]
   }, [])
@@ -149,6 +179,8 @@ export function useStakes(sortState: StakeTableSortState, isActive: boolean, cha
         tvl: stake.tvl,
         apr: new Percent(Math.floor(stake.apr * 100), 10_000),
         isActive: stake.isActive,
+        isCapped: stake.isCapped,
+        isStreaming: stake.isStreaming,
       }))
     } else {
       return []
@@ -167,6 +199,8 @@ export function useStakes(sortState: StakeTableSortState, isActive: boolean, cha
         tvl: stake.tvl,
         apr: stake.apr,
         isActive: stake.isActive,
+        isCapped: stake.isCapped,
+        isStreaming: stake.isStreaming,
       } as TableStake
     })
 
