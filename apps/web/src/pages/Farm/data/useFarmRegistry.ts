@@ -1,21 +1,14 @@
-import { ApolloClient, ApolloQueryResult, InMemoryCache, gql, useQuery } from '@apollo/client'
 import { BigNumber } from '@ethersproject/bignumber'
 import { parseBytes32String } from '@ethersproject/strings'
 import { formatEther, parseEther } from '@ethersproject/units'
 import { CurrencyAmount, Percent, Token } from '@ubeswap/sdk-core'
 import { useFarmRegistryContract } from 'hooks/useContract'
-import JSBI from 'jsbi'
 import React, { useEffect, useMemo } from 'react'
 import { FarmDataEvent, FarmInfoEvent, LPInfoEvent } from 'uniswap/src/abis/types/FarmRegistry'
 import fetchEvents from 'utils/fetchEvents'
 
 import { CACHED_FARM_INFO_BLOCK, cachedFarmInfoEvents, cachedLpInfoEvents } from './cachedFarmInfo'
 import { useCustomStakingInfo } from './useCustomStakingInfo'
-
-const client = new ApolloClient({
-  uri: 'https://interface-gateway.ubeswap.org/v1/v2-subgraph-proxy',
-  cache: new InMemoryCache(),
-})
 
 type FarmData = {
   tvlUSD: string
@@ -115,17 +108,6 @@ const farmWhitelist: Record<string, boolean> = {
   '0x2dfbe4c7313dec4ecb8c853d924dfcc79be1cc9f': true,
 }
 
-const pairDataGql = gql`
-  query getPairHourData($id: String!) {
-    pair(id: $id) {
-      pairHourData(first: 24, orderBy: hourStartUnix, orderDirection: desc) {
-        hourStartUnix
-        hourlyVolumeUSD
-      }
-    }
-  }
-`
-const COMPOUNDS_PER_YEAR = 2
 const LAST_N_BLOCKS = 1440 // Last 8 hours
 
 export interface WarningInfo {
@@ -144,7 +126,7 @@ export const useFarmRegistry = () => {
   }, [])
 
   const call = React.useCallback(async () => {
-    if (!farmRegistryContract || !client) return
+    if (!farmRegistryContract) return
 
     const farmInfoFilter = farmRegistryContract.filters.FarmInfo()
     const lpInfoFilter = farmRegistryContract.filters.LPInfo()
@@ -215,17 +197,7 @@ export const useFarmRegistry = () => {
       .sort((a, b) => Number(formatEther(b.rewardsUSDPerYear.sub(a.rewardsUSDPerYear))))
       .sort((a, b) => Number(a.tvlUSD && b.tvlUSD ? formatEther(b.tvlUSD.sub(a.tvlUSD)) : 0))
 
-    const label = 'farm' + Math.floor(Math.random() * 100000)
-    console.log('start', label)
-    console.time(label)
-    const results = await Promise.all(
-      farmSummaries.map((summary: FarmSummary) => {
-        return client.query({ query: pairDataGql, variables: { id: summary.lpAddress.toLowerCase() } })
-      })
-    )
-    console.timeEnd(label)
-
-    const farmInfos = results.map((result: ApolloQueryResult<any>, index) => calcAPR(result, farmSummaries[index]))
+    const farmInfos = farmSummaries.map((summary) => calcAPR(summary))
     setFarmSummaries(
       farmSummaries.map((summary, index) => ({
         ...summary,
@@ -251,11 +223,6 @@ export const useImportedFarmRegistry = (farmAddress: string): FarmSummary | unde
     totalStakedAmount,
   } = useCustomStakingInfo(farmAddress)
 
-  const result = useQuery(pairDataGql, {
-    variables: { id: stakingToken?.address.toLowerCase() },
-    client,
-  })
-
   if (stakingToken && totalRewardRates && tokens) {
     const farmSummary: FarmSummary = {
       farmName: '',
@@ -270,7 +237,7 @@ export const useImportedFarmRegistry = (farmAddress: string): FarmSummary | unde
       isImported: true,
       totalRewardRates,
     }
-    const farmInfo = calcAPR(result, farmSummary)
+    const farmInfo = calcAPR(farmSummary)
     return { ...farmSummary, ...farmInfo }
   }
   return undefined
@@ -290,19 +257,9 @@ export const useUniqueBestFarms = () => {
   return farmsUniqueByBestFarm
 }
 
-// formula is 1 + ((nom/compoundsPerYear)^compoundsPerYear) - 1
-function annualizedPercentageYield(nominal: Percent, compounds: number) {
-  const ONE = 1
-
-  const divideNominalByNAddOne = Number(nominal.divide(JSBI.BigInt(compounds)).add(JSBI.BigInt(ONE)).toFixed(10))
-
-  // multiply 100 to turn decimal into percent, to fixed since we only display integer
-  return ((divideNominalByNAddOne ** compounds - ONE) * 100).toFixed(0)
-}
-
 // calculate rewardAPR, swapAPR, APY & APR from a farmSummary
 function calcAPR(
-  result: ApolloQueryResult<any>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   summary: FarmSummary
 ): {
   rewardApr: Percent
@@ -310,26 +267,10 @@ function calcAPR(
   apr: Percent
   apy: string
 } {
-  let swapRewardsUSDPerYear: BigNumber = BigNumber.from(0)
-  const { loading, error, data } = result
-  if (!loading && !error && data?.pair) {
-    const lastDayVolumeUsd = data.pair.pairHourData.reduce(
-      (acc: number, curr: { hourlyVolumeUSD: string }) => acc + Number(curr.hourlyVolumeUSD),
-      0
-    )
-    swapRewardsUSDPerYear = parseEther(Math.floor(lastDayVolumeUsd * 365 * 0.0025).toString())
-  }
-  const rewardApr = new Percent(summary.rewardsUSDPerYear.toString(), summary.tvlUSD?.toString())
-  const swapApr = new Percent(swapRewardsUSDPerYear.toString(), summary.tvlUSD?.toString())
-  const apr = new Percent(swapRewardsUSDPerYear.add(summary.rewardsUSDPerYear).toString(), summary.tvlUSD?.toString())
-  let apy = '0'
-  if (summary.tvlUSD?.gt(0)) {
-    try {
-      apy = annualizedPercentageYield(apr, COMPOUNDS_PER_YEAR)
-    } catch (e) {
-      console.error('apy calc overflow', summary.farmName, e)
-    }
-  }
+  const rewardApr = new Percent(0)
+  const swapApr = new Percent(0)
+  const apr = new Percent(0)
+  const apy = '0'
   return {
     rewardApr,
     swapApr,
