@@ -113,68 +113,6 @@ export function useV3Positions(account: string | null | undefined): UseV3Positio
   }
 }
 
-export function useV3StakedPositions(
-  account: string | null | undefined,
-  incentiveIds: string[]
-): UseV3PositionsResults {
-  const [tokenIds, setTokenIds] = useState<BigNumber[]>([])
-  const [tokenIdsLoading, setTokenIdsLoading] = useState(true)
-  const incentiveIdsJson = JSON.stringify(incentiveIds)
-  const pendingTxs = JSON.stringify(usePendingTransactions())
-
-  useEffect(() => {
-    let active = true
-    const _incentiveIds = JSON.parse(incentiveIdsJson)
-    if (account && account.length > 0 && _incentiveIds.length > 0) {
-      setTokenIdsLoading(true)
-      ;(async () => {
-        try {
-          const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              operationName: 'FarmV3AccountStakes',
-              variables: {
-                address: account,
-                incentiveIds: _incentiveIds,
-              },
-              query: '',
-            }),
-          })
-          const data = await res.json()
-          if (active) {
-            setTokenIds(
-              [...new Set(data.data.stakes.map((s: { tokenId: string }) => s.tokenId))].map((t) => BigNumber.from(t))
-            )
-          }
-        } catch (e) {
-          console.error(e)
-        } finally {
-          if (active) {
-            setTokenIdsLoading(false)
-          }
-        }
-      })()
-    } else {
-      setTokenIdsLoading(false)
-      setTokenIds([])
-    }
-    return () => {
-      active = false
-    }
-  }, [account, incentiveIdsJson, pendingTxs])
-
-  const { positions, loading: positionsLoading } = useV3PositionsFromTokenIds(tokenIds)
-
-  return {
-    loading: tokenIdsLoading || positionsLoading,
-    positions,
-  }
-}
-
 interface UseIchiVaultsResults {
   loading: boolean
   amounts?: (UserAmountsInVault & { vaultInfo: IchiVault })[]

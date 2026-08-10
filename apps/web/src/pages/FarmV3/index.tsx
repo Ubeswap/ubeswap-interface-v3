@@ -20,7 +20,7 @@ import { OrderDirection } from 'graphql/data/util'
 import { useToken } from 'hooks/Tokens'
 import { usePoolContract } from 'hooks/useContract'
 import { useUSDPrice } from 'hooks/useUSDPrice'
-import { useV3Positions, useV3StakedPositions } from 'hooks/useV3Positions'
+import { useV3Positions } from 'hooks/useV3Positions'
 import { Trans } from 'i18n'
 import { NEVER_RELOAD, useSingleCallResult } from 'lib/hooks/multicall'
 import { Checkbox } from 'nft/components/layout/Checkbox'
@@ -46,6 +46,7 @@ import {
   useWithdrawCallback,
   type TokenData,
 } from './farm-actions'
+import { useV3StakedPositions } from './farm-stakes'
 import { LoadingRows } from './styled'
 
 const PageWrapper = styled(AutoColumn)`
@@ -302,7 +303,11 @@ export default function FarmV3() {
   const { formatPercent, formatNumber } = useFormatter()
 
   const { positions, loading: positionsLoading } = useV3Positions(account)
-  const { positions: stakedPositions, loading: stakedPositionsLoading } = useV3StakedPositions(account, incentiveIds)
+  const {
+    positions: stakedPositions,
+    loading: stakedPositionsLoading,
+    error: stakedPositionsError,
+  } = useV3StakedPositions(account, incentiveIds)
 
   const positionsInThisPool = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -760,6 +765,18 @@ export default function FarmV3() {
             <PositionstWrapper>
               {positionsLoading || stakedPositionsLoading ? (
                 <PositionsLoadingPlaceholder />
+              ) : stakedPositionsError ? (
+                <ErrorContainer>
+                  <ThemedText.BodyPrimary color={theme.neutral3} textAlign="center">
+                    <NetworkIcon strokeWidth={1.2} />
+                    <div data-testid="staked-positions-err">
+                      <Trans>Unable to load your staked positions.</Trans>
+                    </div>
+                    <div style={{ marginTop: '0.5em', marginBottom: '2em' }}>
+                      <Trans>This is temporary, retrying automatically.</Trans>
+                    </div>
+                  </ThemedText.BodyPrimary>
+                </ErrorContainer>
               ) : positionsInThisPool && stakedPositions && positionsInThisPool.length + stakedPositions.length > 0 ? (
                 <PositionList
                   positions={positionsInThisPool}

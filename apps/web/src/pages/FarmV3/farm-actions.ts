@@ -13,6 +13,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { usePendingTransactions, useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionType } from 'state/transactions/types'
 import { calculateGasMargin } from 'utils/calculateGasMargin'
+import { useRefreshStakes } from './farm-stakes'
 
 const FARM_ADDRESS = '0xA6E9069CB055a425Eb41D185b740B22Ec8f51853'
 
@@ -55,6 +56,7 @@ export function useDepositCallback(): [
   const [txHash, setTxHash] = useState<string>('')
 
   const nftContract = useV3NFTPositionManagerContract(true)
+  const refreshStakes = useRefreshStakes()
 
   const cb = useCallback(
     async (tokenId: BigNumber, incentives: IncentiveKey[]): Promise<void> => {
@@ -90,13 +92,14 @@ export function useDepositCallback(): [
         const functionName = 'safeTransferFrom(address,address,uint256,bytes)' as const
 
         await startTransaction(account, nftContract, functionName, args)
-          .then((response: TransactionResponse) => {
+          .then(async (response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
               type: TransactionType.CUSTOM,
               summary: 'Depositing to V3 Farm',
             })
-            return response.wait(2)
+            await response.wait(2)
+            await refreshStakes(response.hash)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)
@@ -113,7 +116,7 @@ export function useDepositCallback(): [
         setTxHash('')
       }
     },
-    [isPending, nftContract, account, pendingTxs, addTransaction]
+    [isPending, nftContract, account, pendingTxs, addTransaction, refreshStakes]
   )
 
   return [cb, txHash, isPending]
@@ -139,6 +142,7 @@ export function useWithdrawCallback(): [
   const [txHash, setTxHash] = useState<string>('')
 
   const farmContract = useUbeswapV3FarmingContract(FARM_ADDRESS)
+  const refreshStakes = useRefreshStakes()
 
   const cb = useCallback(
     async (tokenId: BigNumber, incentives: IncentiveKey[], collectParams: CollectRewardParams[]): Promise<void> => {
@@ -184,13 +188,14 @@ export function useWithdrawCallback(): [
         ]
 
         await startTransaction(account, farmContract, 'multicall', [calldatas])
-          .then((response: TransactionResponse) => {
+          .then(async (response: TransactionResponse) => {
             setTxHash(response.hash)
             addTransaction(response, {
               type: TransactionType.CUSTOM,
               summary: 'Withdraw from V3 Farm',
             })
-            return response.wait(2)
+            await response.wait(2)
+            await refreshStakes(response.hash)
           })
           .catch((error) => {
             console.error('Failed to send transaction', error)
@@ -207,7 +212,7 @@ export function useWithdrawCallback(): [
         setTxHash('')
       }
     },
-    [isPending, farmContract, account, pendingTxs, addTransaction]
+    [isPending, farmContract, account, pendingTxs, addTransaction, refreshStakes]
   )
 
   return [cb, txHash, isPending]
