@@ -20,9 +20,9 @@ export function sortFarms(pools: TableFarm[], sortState: FarmTableSortState) {
     switch (sortState.sortBy) {
       case FarmSortFields.APR:
         if (a.apr.equalTo(b.apr)) {
-          if (a.farmAddress == '0x534408e91d755a0d898e1c508e987e8d0615b52c') {
+          if (a.protocolVersion === ProtocolVersion.V3) {
             return -1
-          } else if (b.farmAddress == '0x534408e91d755a0d898e1c508e987e8d0615b52c') {
+          } else if (b.protocolVersion === ProtocolVersion.V3) {
             return 1
           }
         }
@@ -65,6 +65,7 @@ export interface FetchedFarm {
   tvl: number
   protocolVersion: number
   rewardTokens: string[]
+  isActive: boolean
 }
 
 export enum FarmSortFields {
@@ -104,14 +105,41 @@ function useFilteredFarms(pools: TableFarm[]) {
   )
 }
 
+async function fetchFarms(): Promise<FetchedFarm[] | undefined> {
+  try {
+    const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        operationName: 'Farms',
+        variables: {},
+        query: '',
+      }),
+    })
+    const data = await res.json()
+    return data
+  } catch (e) {
+    console.error('Error fetching farms:', e)
+    return undefined
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useInactiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
   const farms = useFarmRegistry()
   const tokens = useDefaultActiveTokens(ChainId.CELO)
-  const loading = farms.length == 0
+  const { data: farmsBackend, isLoading } = useQuery({
+    queryKey: ['farms'],
+    queryFn: () => fetchFarms(),
+    staleTime: 30_000,
+  })
+  const loading = isLoading || farms.length == 0
 
   const unfilteredPools = useMemo(() => {
-    const fff: TableFarm[] =
+    const farmsFromRegistry: TableFarm[] =
       farms
         ?.map((farm) => {
           const token0Address = isAddress(farm.token0Address)
@@ -140,76 +168,38 @@ export function useInactiveFarms(sortState: FarmTableSortState, chainId?: ChainI
           return []
         })
         .flat() ?? []
-    const rt = sortFarms([...fff], sortState)
+    const _farmsBackend =
+      farmsBackend
+        ?.filter((f: FetchedFarm) => !f.isActive)
+        .map((fetchedFarm): TableFarm[] => {
+          if (tokens[fetchedFarm.token0] && tokens[fetchedFarm.token1]) {
+            return [
+              {
+                hash: `${fetchedFarm.poolAddress}-v${fetchedFarm.protocolVersion}`,
+                farmAddress: fetchedFarm.contractAddress,
+                poolAddress: fetchedFarm.poolAddress,
+                token0: tokens[fetchedFarm.token0],
+                token1: tokens[fetchedFarm.token1],
+                token0Amount: new Fraction(0),
+                token1Amount: new Fraction(0),
+                tvl: fetchedFarm.tvl,
+                apr: new Percent(Math.round(fetchedFarm.apr * 1_000_000), 100 * 1_000_000),
+                feeTier: fetchedFarm.fee,
+                protocolVersion: fetchedFarm.protocolVersion === 3 ? ProtocolVersion.V3 : ProtocolVersion.V2,
+              } as TableFarm,
+            ]
+          }
+          return []
+        })
+        .flat() ?? []
+    const rt = sortFarms([..._farmsBackend, ...farmsFromRegistry], sortState)
     return rt
-  }, [farms, tokens, sortState])
+  }, [farmsBackend, farms, tokens, sortState])
 
   const filteredFarms = useFilteredFarms(unfilteredPools).slice(0, 100)
-  if (
-    tokens['0x2E6C05f1f7D1f4Eb9A088bf12257f1647682b754'] &&
-    tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'] &&
-    tokens['0x71e26d0E519D14591b9dE9a0fE9513A398101490']
-  ) {
-    filteredFarms.unshift({
-      hash: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c-v3',
-      farmAddress: '0xA6E9069CB055a425Eb41D185b740B22Ec8f51853',
-      poolAddress: '0x1e283e3cb1ffcbD92551867CFED10B712F52878c',
-      token0: tokens['0x2E6C05f1f7D1f4Eb9A088bf12257f1647682b754'],
-      token1: tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'],
-      token0Amount: new Fraction(0),
-      token1Amount: new Fraction(0),
-      tvl: 0,
-      apr: new Percent(0),
-      feeTier: V2_BIPS,
-      protocolVersion: 'V3',
-    } as TableFarm)
-    filteredFarms.unshift({
-      hash: '0x1eF76d432280C837E5668f582C82de8f6cA4024d-v3',
-      farmAddress: '0xA6E9069CB055a425Eb41D185b740B22Ec8f51853',
-      poolAddress: '0x1eF76d432280C837E5668f582C82de8f6cA4024d',
-      token0: tokens['0x471EcE3750Da237f93B8E339c536989b8978a438'],
-      token1: tokens['0x71e26d0E519D14591b9dE9a0fE9513A398101490'],
-      token0Amount: new Fraction(0),
-      token1Amount: new Fraction(0),
-      tvl: 0,
-      apr: new Percent(0),
-      feeTier: V2_BIPS,
-      protocolVersion: 'V3',
-    } as TableFarm)
-  }
 
   return { farms: filteredFarms, loading }
 }
-
-async function fetchFarms(): Promise<FetchedFarm[] | undefined> {
-  try {
-    const res = await fetch('https://interface-gateway.ubeswap.org/v1/graphql', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        operationName: 'Farms',
-        variables: {},
-        query: '',
-      }),
-    })
-    const data = await res.json()
-    return data
-  } catch (e) {
-    console.error('Error fetching farms:', e)
-    return undefined
-  }
-}
-
-const whitelistedPools = [
-  '0x3efc8d831b754d3ed58a2b4c37818f2e69dadd19', // UBE-CELO V3
-  '0x28ade0134b9d0bc7041f4e5ea74fecb58504720b', // USDGLO-USDC 0.01%
-  '0x44569704b206798014217b8a02c700bf73ceb72f', // CELO-USDC 1%
-  '0x6ade22bd1d73c7162df10e06b51dbc725e2d44a2', // CELO-USDT 1%
-  '0x3d9e27c04076288ebfdc4815b4f6d81b0ed1b341', // USDGLO-G$ 1%
-]
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId) {
@@ -226,7 +216,7 @@ export function useActiveFarms(sortState: FarmTableSortState, chainId?: ChainId)
     const _farmsBackend = farmsBackend || []
     const backendFarms =
       _farmsBackend
-        .filter((f: FetchedFarm) => whitelistedPools.includes(f.poolAddress.toLowerCase()))
+        .filter((f: FetchedFarm) => f.isActive)
         .map((fetchedFarm): TableFarm[] => {
           if (tokens[fetchedFarm.token0] && tokens[fetchedFarm.token1]) {
             return [
