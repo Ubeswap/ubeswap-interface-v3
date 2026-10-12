@@ -1,16 +1,17 @@
-import store from 'state'
+import { ListsState } from 'state/lists/types'
 
 import { DEFAULT_LIST_OF_LISTS } from './lists'
 
 class TokenLogoLookupTable {
   private dict: { [key: string]: string[] | undefined } = {}
-  private initialized = false
+  private source: ListsState['byUrl'] | undefined
 
-  initialize() {
+  // Rebuild whenever the lists state changes (rehydration, list version updates)
+  private initialize(lists: ListsState['byUrl']) {
     const dict: { [key: string]: string[] | undefined } = {}
 
     DEFAULT_LIST_OF_LISTS.forEach((list) => {
-      const listData = store.getState().lists.byUrl[list]
+      const listData = lists[list]
       if (!listData) {
         return
       }
@@ -27,13 +28,13 @@ class TokenLogoLookupTable {
       })
     })
     this.dict = dict
-    this.initialized = true
+    this.source = lists
   }
-  getIcons(address?: string | null, chainId: number | null = 42220) {
+  getIcons(lists: ListsState['byUrl'], address?: string | null, chainId: number | null = 42220) {
     if (!address) return undefined
 
-    if (!this.initialized) {
-      this.initialize()
+    if (this.source !== lists) {
+      this.initialize(lists)
     }
 
     return this.dict[address.toLowerCase() + ':' + chainId]

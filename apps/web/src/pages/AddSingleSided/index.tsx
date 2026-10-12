@@ -40,17 +40,17 @@ const DEFAULT_ADD_IN_RANGE_SLIPPAGE_TOLERANCE = new Percent(50, 10_000)
 const DEPOSIT_GUARD_ADDRESS = '0x238394541dE407Fd494e455eF17C9D991F4FBEd8'
 
 const VAULTS = [
-  // cUSD-CELO-0.01% 0xA4574B53c18192B5DC37e7428e7BD66C04cA9410
+  // USDm-CELO-0.01% 0xA4574B53c18192B5DC37e7428e7BD66C04cA9410
   {
-    depositTokenSymbol: 'cUSD',
+    depositTokenSymbol: 'USDm',
     otherTokenSymbol: 'CELO',
     vaultAddress: '0xA4574B53c18192B5DC37e7428e7BD66C04cA9410',
   },
 
-  // CELO-cUSD-0.01% 0xd85a949433c1F373eF3C3fA6f7c26edb10F136Eb
+  // CELO-USDm-0.01% 0xd85a949433c1F373eF3C3fA6f7c26edb10F136Eb
   {
     depositTokenSymbol: 'CELO',
-    otherTokenSymbol: 'cUSD',
+    otherTokenSymbol: 'USDm',
     vaultAddress: '0xd85a949433c1F373eF3C3fA6f7c26edb10F136Eb',
   },
 

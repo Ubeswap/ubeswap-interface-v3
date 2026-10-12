@@ -172,8 +172,8 @@ export const CUSD_CELO = new Token(
   ChainId.CELO,
   '0x765DE816845861e75A25fCA122bb6898B8B1282a',
   18,
-  'cUSD',
-  'Celo Dollar'
+  'USDm',
+  'Mento Dollar'
 )
 export const CEUR_CELO = new Token(
   ChainId.CELO,

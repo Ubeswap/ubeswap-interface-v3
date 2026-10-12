@@ -60,7 +60,7 @@ function calculatePresetTickRange(type: PresetType, token0Symbol: string, token1
   if (type == PresetType.FULL) {
     throw new Error('invalid PresetType')
   }
-  const stableUsdSymbols = ['USDT', 'USDC', 'cUSD', 'CUSD', 'USDGLO', 'mcUSD']
+  const stableUsdSymbols = ['USDT', 'USDC', 'cUSD', 'CUSD', 'USDm', 'USDGLO', 'mcUSD']
   const isBothStable = stableUsdSymbols.includes(token0Symbol) && stableUsdSymbols.includes(token1Symbol)
   if (isBothStable) {
     switch (type) {

@@ -4,6 +4,7 @@ import { checkWarning, WARNING_LEVEL } from 'constants/tokenSafety'
 import { chainIdToNetworkName, getNativeLogoURI } from 'lib/hooks/useCurrencyLogoURIs'
 import uriToHttp from 'lib/utils/uriToHttp'
 import { useCallback, useMemo, useReducer } from 'react'
+import { useAllLists } from 'state/lists/hooks'
 import { isAddress } from 'utilities/src/addresses'
 
 import celoLogo from '../assets/svg/celo_logo.svg'
@@ -73,20 +74,24 @@ export default function useAssetLogoSource({
 }): [string | undefined, () => void] {
   const hideLogo = Boolean(address && checkWarning(address, chainId)?.level === WARNING_LEVEL.BLOCKED)
   const [srcIndex, incrementSrcIndex] = useReducer((n: number) => n + 1, 0)
+  const lists = useAllLists()
 
   const current = useMemo(() => {
     if (hideLogo) return undefined
 
     if (primaryImg && !BAD_SRCS[primaryImg] && !isNative) return primaryImg
 
+    // Token list logos take precedence over the generic Uniswap assets repo
+    const isWrappedCelo = Boolean(chainId && isCelo(chainId) && address === nativeOnChain(chainId).wrapped.address)
+    const uris = isNative || isWrappedCelo ? [] : tokenLogoLookup.getIcons(lists, address, chainId) ?? []
+    const listSrc = prioritizeLogoSources(parseLogoSources(uris)).find((src) => !BAD_SRCS[src])
+    if (listSrc) return listSrc
+
     const initialUrl = getInitialUrl(address, chainId, isNative)
     if (initialUrl && !BAD_SRCS[initialUrl]) return initialUrl
-
-    const uris = tokenLogoLookup.getIcons(address, chainId) ?? []
-    const fallbackSrcs = prioritizeLogoSources(parseLogoSources(uris))
-    return fallbackSrcs.find((src) => !BAD_SRCS[src])
+    return undefined
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rerun when src index changes, denoting a bad src was marked
-  }, [address, chainId, hideLogo, isNative, primaryImg, srcIndex])
+  }, [address, chainId, hideLogo, isNative, lists, primaryImg, srcIndex])
 
   const nextSrc = useCallback(() => {
     if (current) BAD_SRCS[current] = true

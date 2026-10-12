@@ -324,7 +324,7 @@ export default function OptionsStep({ onNext }: { onNext: () => void }) {
     },
     {
       id: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
-      name: 'cUSD',
+      name: 'USDm',
     },
     {
       id: '0x4F604735c1cF31399C6E711D5962b2B3E0225AD3',
