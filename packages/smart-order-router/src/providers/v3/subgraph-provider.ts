@@ -171,7 +171,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           let pools: RawV3SubgraphPool[] = []
           let poolsPage: RawV3SubgraphPool[] = []
 
-          if (this.chainId === ChainId.CELO_SEPOLIA) {
+          if (this.chainId === ChainId.CELO || this.chainId === ChainId.CELO_SEPOLIA) {
             return fetchPairsFromBackend(this.chainId)
           }
 
