@@ -19,7 +19,10 @@ export const useMenuContent = (): MenuSection[] => {
   return [
     {
       title: t('App'),
-      items: [{ label: 'Convert', href: '/claim-new-ube', internal: true }],
+      items: [
+        { label: 'UbeStarter', href: '/ubestarter', internal: true },
+        { label: 'Convert', href: '/claim-new-ube', internal: true },
+      ],
     },
     {
       title: t('Charts'),

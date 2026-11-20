@@ -46,6 +46,8 @@ const RedirectEarn = lazy(() => import('pages/Earn/redirects'))
 const RedirectLaunchpad = lazy(() => import('pages/LaunchpadList/redirects'))
 const LaunchpadCreate = lazy(() => import('pages/LaunchpadCreate'))
 const LaunchpadPage = lazy(() => import('pages/LaunchpadPage'))
+const UbeAgent = lazy(() => import('pages/UbeAgent'))
+const CreateAgent = lazy(() => import('pages/UbeAgent/CreateAgent'))
 const FarmV3 = lazy(() => import('pages/FarmV3'))
 const Debug = lazy(() => import('pages/Debug'))
 const Governance = lazy(() => import('pages/Governance'))
@@ -415,6 +417,16 @@ export const routes: RouteDefinition[] = [
     path: '/ubestarter/details/:launchpadAddress',
     getTitle: () => 'UbeStarter',
     getElement: () => <LaunchpadPage />,
+  }),
+  createRouteDefinition({
+    path: '/ubeagent',
+    getTitle: () => 'UbeAgent',
+    getElement: () => <UbeAgent />,
+  }),
+  createRouteDefinition({
+    path: '/ubeagent/create',
+    getTitle: () => 'Create New Agent',
+    getElement: () => <CreateAgent />,
   }),
   createRouteDefinition({
     path: '/debug',

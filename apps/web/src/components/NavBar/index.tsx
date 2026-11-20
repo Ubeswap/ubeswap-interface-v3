@@ -177,8 +177,8 @@ export const PageTabs = () => {
       <MenuItem href="/earn" isActive={pathname.startsWith('/earn')}>
         <Trans>Earn</Trans>
       </MenuItem>
-      <MenuItem href="/ubestarter" isActive={pathname.startsWith('/ubestarter')}>
-        <Trans>Ubestarter</Trans>
+      <MenuItem href="/ubeagent" isActive={pathname.startsWith('/ubeagent')}>
+        <Trans>UbeAgent</Trans>
       </MenuItem>
       {/*<MenuItem href="/stake" isActive={pathname.startsWith('/stake')}>
         <Trans>Stake</Trans>
