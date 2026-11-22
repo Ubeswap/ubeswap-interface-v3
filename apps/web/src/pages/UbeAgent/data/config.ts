@@ -2,6 +2,12 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { ChainId } from '@ubeswap/sdk-core'
 import { RPC_PROVIDERS } from 'constants/providers'
 
+import mentoLogo from '../assets/dex/mento.png'
+import sushiswapLogo from '../assets/dex/sushiswap.png'
+import ubeswapLogo from '../assets/dex/ubeswap.png'
+import uniswapLogo from '../assets/dex/uniswap.png'
+import velodromeLogo from '../assets/dex/velodrome.png'
+
 /** UbeAgent runs on Celo only. */
 export const AGENT_CHAIN = ChainId.CELO
 
@@ -39,6 +45,14 @@ export const DEFAULT_DEXES = ['Ubeswap']
 /** Why an exchange can have no pools for a reason other than "nothing listed yet". */
 export const DEX_NOTES: Record<string, string> = {
   Mento: "Mento Reserve swaps go through its Broker rather than a pool contract; agents can't trade it yet.",
+}
+/** Each exchange's logo: Ubeswap's from its own interface, the others from DefiLlama's protocol icons. */
+export const DEX_LOGOS: Record<string, string> = {
+  Ubeswap: ubeswapLogo,
+  Uniswap: uniswapLogo,
+  Velodrome: velodromeLogo,
+  SushiSwap: sushiswapLogo,
+  Mento: mentoLogo,
 }
 /** "Ubeswap" for "Ubeswap V3". */
 export const dexFamily = (dex: string): string => dex.split(' ')[0]

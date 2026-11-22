@@ -4,9 +4,15 @@ import styled from 'styled-components'
 import { ThemedText } from 'theme/components'
 
 import { PoolInfo } from '../data/chain'
-import { DEX_FAMILIES, DEX_NOTES, MAIN_TOKENS, dexFamily } from '../data/config'
+import { DEX_FAMILIES, DEX_LOGOS, DEX_NOTES, MAIN_TOKENS, dexFamily } from '../data/config'
 import { Selection, flip, picked, tradeable, withReferences } from '../data/selection'
 import { Chip, Chips, Note, TokenLogo } from './ui'
+
+const DexLogo = styled.img`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+`
 
 const TokenGrid = styled.div`
   display: grid;
@@ -110,6 +116,7 @@ export function TokenPicker({ all, sel, setSel }: { all: PoolInfo[]; sel: Select
             aria-pressed={sel.dexes.has(d)}
             onClick={() => setSel({ dexes: flip(sel.dexes, d), tokens: sel.tokens, manual: null })}
           >
+            <DexLogo src={DEX_LOGOS[d]} alt="" />
             {d}
           </Chip>
         ))}
