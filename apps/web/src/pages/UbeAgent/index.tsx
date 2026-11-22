@@ -22,6 +22,7 @@ import {
   StatusBadge,
   useStatusColor,
 } from './components/shared'
+import { AGENT_PATH } from './CreateAgent'
 import { UserAgent, useUserAgents } from './data/useUserAgents'
 
 const Container = styled.div`
@@ -260,10 +261,11 @@ const EmptyCard = styled.div`
 
 function AgentCard({ agent }: { agent: UserAgent }) {
   const theme = useTheme()
+  const navigate = useNavigate()
   const statusColor = useStatusColor(agent.status)
 
   return (
-    <Card>
+    <Card onClick={() => navigate(AGENT_PATH(agent.address))}>
       <CardGlow $color={statusColor} />
       <CardTop>
         <AgentAvatar seed={agent.id} size={48} />
