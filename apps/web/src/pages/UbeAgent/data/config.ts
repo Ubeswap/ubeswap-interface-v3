@@ -11,9 +11,9 @@ import velodromeLogo from '../assets/dex/velodrome.png'
 /** UbeAgent runs on Celo only. */
 export const AGENT_CHAIN = ChainId.CELO
 
-/** The AgentFactory on Celo mainnet (owner: a Safe) and the block it was deployed at. */
-const MAINNET_FACTORY = '0x57D69E0cA474B39494EBB2BD86381E21b93134C0'
-const MAINNET_FROM_BLOCK = 83538586
+/** The AgentFactory on Celo mainnet (an upgradeable proxy, owner: a Safe) and the block it was deployed at. */
+const MAINNET_FACTORY = '0xF36dB7351704eefaD5Ce9C2Fe3123356bBF0EcdC'
+const MAINNET_FROM_BLOCK = 83571529
 
 /** The AgentFactory every build uses; REACT_APP_UBEAGENT_FACTORY points a build at another one (e.g. a local fork). */
 export const AGENT_FACTORY: string = process.env.REACT_APP_UBEAGENT_FACTORY || MAINNET_FACTORY
