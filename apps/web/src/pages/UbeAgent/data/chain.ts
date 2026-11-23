@@ -27,12 +27,7 @@ export type PoolInfo = {
   priced: boolean
 }
 
-export function requireFactory(): string {
-  if (!AGENT_FACTORY) throw new Error('UbeAgent is not available yet: no agent factory is configured.')
-  return AGENT_FACTORY
-}
-
-const factoryOf = (p: JsonRpcProvider) => new Contract(requireFactory(), FACTORY_ABI, p)
+const factoryOf = (p: JsonRpcProvider) => new Contract(AGENT_FACTORY, FACTORY_ABI, p)
 const erc20 = (address: string, p: JsonRpcProvider) => new Contract(address, ERC20_ABI, p)
 
 /** Most public Celo RPCs answer eth_getLogs over at most 5,000 blocks. */

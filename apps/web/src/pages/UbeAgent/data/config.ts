@@ -1,7 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { ChainId } from '@ubeswap/sdk-core'
 import { RPC_PROVIDERS } from 'constants/providers'
-import { isProductionEnv } from 'utils/env'
 
 import mentoLogo from '../assets/dex/mento.png'
 import sushiswapLogo from '../assets/dex/sushiswap.png'
@@ -16,15 +15,8 @@ export const AGENT_CHAIN = ChainId.CELO
 const MAINNET_FACTORY = '0x57D69E0cA474B39494EBB2BD86381E21b93134C0'
 const MAINNET_FROM_BLOCK = 83538586
 
-/**
- * The contracts aren't audited yet, so production builds keep agent creation closed ("coming soon") unless
- * REACT_APP_UBEAGENT_FACTORY is set; staging (REACT_APP_STAGING) and local builds use the mainnet factory.
- */
-const OPEN_BY_DEFAULT = !isProductionEnv()
-
-/** The AgentFactory; unset = the page says agents aren't available yet instead of reading a wrong contract. */
-export const AGENT_FACTORY: string | undefined =
-  process.env.REACT_APP_UBEAGENT_FACTORY || (OPEN_BY_DEFAULT ? MAINNET_FACTORY : undefined)
+/** The AgentFactory every build uses; REACT_APP_UBEAGENT_FACTORY points a build at another one (e.g. a local fork). */
+export const AGENT_FACTORY: string = process.env.REACT_APP_UBEAGENT_FACTORY || MAINNET_FACTORY
 
 /** The factory's deploy block: its pool list (UniverseSet logs) is read from here on. */
 export const AGENT_FROM_BLOCK = process.env.REACT_APP_UBEAGENT_FACTORY

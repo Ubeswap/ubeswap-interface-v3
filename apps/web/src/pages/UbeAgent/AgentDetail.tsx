@@ -19,8 +19,8 @@ import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { agent, agentUsd, prices, requireFactory, trades, universe } from './data/chain'
-import { agentProvider, DAY_BLOCKS } from './data/config'
+import { agent, agentUsd, prices, trades, universe } from './data/chain'
+import { AGENT_FACTORY, agentProvider, DAY_BLOCKS } from './data/config'
 import { picked as pickedPools, Selection, selectionOf, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
 import { AgentStatus } from './data/useUserAgents'
@@ -357,7 +357,7 @@ function AgentPanel({ address }: { address: string }) {
   /** One more month of rent in the factory's numeraire: approval first when the allowance is short. */
   async function extendRent(agentAddr: string, owner: string | undefined): Promise<TransactionResponse> {
     if (!owner) throw new Error('Connect a wallet first.')
-    const factoryAddr = requireFactory()
+    const factoryAddr = AGENT_FACTORY
     const reader = new Contract(factoryAddr, FACTORY_ABI, agentProvider())
     const token: string = await reader.NUMERAIRE()
     const price: BigNumber = await reader.rentPerMonth(token)

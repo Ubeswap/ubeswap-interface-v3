@@ -20,7 +20,7 @@ import { AgentIllustration } from './components/shared'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Chip, Chips, Failure, Note, Page, Panel, Row, TokenLogo, usd } from './components/ui'
 import { ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { PoolInfo, prices, requireFactory, Token, tokens, universe } from './data/chain'
+import { PoolInfo, prices, Token, tokens, universe } from './data/chain'
 import { AGENT_FACTORY, agentProvider, CELO_TOKEN, HIGH_USD, IDEAL_USD, MIN_USD } from './data/config'
 import { emptySelection, picked as pickedPools, Selection, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
@@ -80,7 +80,6 @@ export default function CreateAgent() {
   const [sel, setSel] = useState<Selection>(emptySelection)
   const q = useQuery({
     queryKey: ['ubeagent', 'universe'],
-    enabled: !!AGENT_FACTORY,
     queryFn: () => universe(agentProvider()),
   })
 
@@ -88,7 +87,7 @@ export default function CreateAgent() {
   const picked = pickedPools(all, sel)
   const chosen = withReferences(all, picked)
 
-  if (!AGENT_FACTORY || !account) {
+  if (!account) {
     return (
       <Page style={{ alignItems: 'center', textAlign: 'center' }}>
         <AgentIllustration width={260} />
@@ -96,13 +95,9 @@ export default function CreateAgent() {
           <Trans>Create new agent</Trans>
         </ThemedText.HeadlineMedium>
         <ThemedText.BodySecondary>
-          {AGENT_FACTORY ? (
-            <Trans>Connect your wallet to create an agent.</Trans>
-          ) : (
-            <Trans>Agent creation is coming soon.</Trans>
-          )}
+          <Trans>Connect your wallet to create an agent.</Trans>
         </ThemedText.BodySecondary>
-        {AGENT_FACTORY && <ConnectWalletButton />}
+        <ConnectWalletButton />
         <Back to="/ubeagent">
           <ArrowLeft size={16} />
           <Trans>Back to your agents</Trans>
@@ -184,7 +179,7 @@ function Fund({
     queryKey: ['ubeagent', 'fund', owner, held.map((t) => t.address).join()],
     queryFn: async () => {
       const p = agentProvider()
-      const factory = new Contract(requireFactory(), [...FACTORY_ABI], p)
+      const factory = new Contract(AGENT_FACTORY, [...FACTORY_ABI], p)
       const numeraire = getAddress(await factory.NUMERAIRE())
       const candidates = [numeraire, getAddress(CELO_TOKEN)]
       const perMonth: BigNumber[] = await Promise.all(candidates.map((t) => factory.rentPerMonth(t)))
@@ -225,7 +220,7 @@ function Fund({
     if (!rent || !q.data) return
     setError(null)
     try {
-      const factoryAddr = requireFactory()
+      const factoryAddr = AGENT_FACTORY
       const rentToken = await contract(rent.token.address, ERC20_ABI)
       const allowance: BigNumber = await rentToken.allowance(owner, factoryAddr)
       if (allowance.lt(rentAmount)) {

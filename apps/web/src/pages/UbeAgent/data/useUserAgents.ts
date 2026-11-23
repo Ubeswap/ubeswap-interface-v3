@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useWeb3React } from '@web3-react/core'
 
 import { agent, agentsOf, agentUsd, prices } from './chain'
-import { AGENT_FACTORY, agentProvider } from './config'
+import { agentProvider } from './config'
 
 export type AgentStatus = 'running' | 'paused' | 'stopped'
 
@@ -29,7 +29,7 @@ export function useUserAgents(): { agents: UserAgent[]; loading: boolean; error:
   const { account } = useWeb3React()
   const q = useQuery({
     queryKey: ['ubeagent', 'agents', account],
-    enabled: !!account && !!AGENT_FACTORY,
+    enabled: !!account,
     refetchInterval: 30_000,
     queryFn: async (): Promise<UserAgent[]> => {
       const p = agentProvider()
