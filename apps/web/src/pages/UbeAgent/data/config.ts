@@ -1,6 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { ChainId } from '@ubeswap/sdk-core'
 import { RPC_PROVIDERS } from 'constants/providers'
+import { isProductionEnv } from 'utils/env'
 
 import mentoLogo from '../assets/dex/mento.png'
 import sushiswapLogo from '../assets/dex/sushiswap.png'
@@ -11,11 +12,24 @@ import velodromeLogo from '../assets/dex/velodrome.png'
 /** UbeAgent runs on Celo only. */
 export const AGENT_CHAIN = ChainId.CELO
 
+/** The AgentFactory on Celo mainnet (owner: a Safe) and the block it was deployed at. */
+const MAINNET_FACTORY = '0x57D69E0cA474B39494EBB2BD86381E21b93134C0'
+const MAINNET_FROM_BLOCK = 83538586
+
+/**
+ * The contracts aren't audited yet, so production builds keep agent creation closed ("coming soon") unless
+ * REACT_APP_UBEAGENT_FACTORY is set; staging (REACT_APP_STAGING) and local builds use the mainnet factory.
+ */
+const OPEN_BY_DEFAULT = !isProductionEnv()
+
 /** The AgentFactory; unset = the page says agents aren't available yet instead of reading a wrong contract. */
-export const AGENT_FACTORY: string | undefined = process.env.REACT_APP_UBEAGENT_FACTORY || undefined
+export const AGENT_FACTORY: string | undefined =
+  process.env.REACT_APP_UBEAGENT_FACTORY || (OPEN_BY_DEFAULT ? MAINNET_FACTORY : undefined)
 
 /** The factory's deploy block: its pool list (UniverseSet logs) is read from here on. */
-export const AGENT_FROM_BLOCK = Number(process.env.REACT_APP_UBEAGENT_FROM_BLOCK ?? '0')
+export const AGENT_FROM_BLOCK = process.env.REACT_APP_UBEAGENT_FACTORY
+  ? Number(process.env.REACT_APP_UBEAGENT_FROM_BLOCK ?? '0')
+  : MAINNET_FROM_BLOCK
 
 /** Local testing only: a Celo fork's RPC that agent reads go to instead of the app's Celo providers. */
 const AGENT_RPC_URL: string | undefined = process.env.REACT_APP_UBEAGENT_RPC_URL || undefined
