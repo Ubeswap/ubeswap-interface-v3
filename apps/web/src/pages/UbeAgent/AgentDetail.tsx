@@ -19,7 +19,7 @@ import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { agent, agentUsd, prices, trades, universe } from './data/chain'
+import { agent, agentUsd, AgentView, prices, Token, trades, universe } from './data/chain'
 import { AGENT_FACTORY, agentProvider, DAY_BLOCKS } from './data/config'
 import { picked as pickedPools, Selection, selectionOf, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
@@ -108,6 +108,29 @@ const TradeRow = styled(ExternalLink)<{ $tone: 'good' | 'bad' }>`
   }
 `
 
+const Receive = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+  }
+  b {
+    margin-left: auto;
+    font-weight: 485;
+    color: ${({ theme }) => theme.neutral2};
+  }
+  div:last-child {
+    padding-top: 8px;
+    border-top: 1px solid ${({ theme }) => theme.surface3};
+    font-weight: 535;
+  }
+`
+
 const Actions = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -130,7 +153,38 @@ export default function AgentDetail() {
   return <AgentPanel address={getAddress(address)} />
 }
 
-type Run = (label: string, send: () => Promise<TransactionResponse>) => Promise<void>
+/** Sends a transaction and waits for it; true once it landed. */
+type Run = (label: string, send: () => Promise<TransactionResponse>) => Promise<boolean>
+
+/** What a withdrawal returns: each token the agent holds, as it holds it. */
+type Held = { token: Token; raw: BigNumber; usd: number }
+
+function heldOf(v: AgentView, px: Map<string, number>): Held[] {
+  return v.tokens
+    .map((token) => {
+      const raw = v.balances.get(token.address) ?? BigNumber.from(0)
+      return { token, raw, usd: (Number(raw.toString()) / 10 ** token.decimals) * (px.get(token.address) ?? 0) }
+    })
+    .filter((h) => h.raw.gt(0))
+}
+
+function HeldList({ held }: { held: Held[] }) {
+  return (
+    <Receive>
+      {held.map((h) => (
+        <div key={h.token.address}>
+          <TokenLogo token={h.token} size={20} />
+          {amount(h.raw, h.token.decimals, 4)} {h.token.symbol}
+          <b>{usd(h.usd)}</b>
+        </div>
+      ))}
+      <div>
+        <Trans>Total</Trans>
+        <b>{usd(held.reduce((s, h) => s + h.usd, 0))}</b>
+      </div>
+    </Receive>
+  )
+}
 
 function AgentPanel({ address }: { address: string }) {
   const qc = useQueryClient()
@@ -138,6 +192,9 @@ function AgentPanel({ address }: { address: string }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [editing, setEditing] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  /** what the last withdrawal sent to the wallet, as shown when it was confirmed */
+  const [received, setReceived] = useState<Held[] | null>(null)
 
   const q = useQuery({
     queryKey: ['ubeagent', 'agent', address],
@@ -156,8 +213,10 @@ function AgentPanel({ address }: { address: string }) {
     try {
       await settle(await send(), `${label}: the transaction reverted.`)
       await qc.invalidateQueries({ queryKey: ['ubeagent'] })
+      return true
     } catch (e) {
       setError(e)
+      return false
     } finally {
       setBusy(null)
     }
@@ -191,6 +250,7 @@ function AgentPanel({ address }: { address: string }) {
   const used = cap ? Math.min(1, Number(v.lossUsed.toString()) / cap) : 0
   const symbol = (t: string) => v.tokens.find((x) => x.address === t)?.symbol ?? shortenAddr(t)
   const tokenOf = (t: string) => v.tokens.find((x) => x.address === t)
+  const held = heldOf(v, px)
 
   return (
     <Page>
@@ -218,15 +278,13 @@ function AgentPanel({ address }: { address: string }) {
         </ThemedText.BodySecondary>
         <ThemedText.HeadlineLarge>{usd(total)}</ThemedText.HeadlineLarge>
         <Holdings>
-          {v.tokens
-            .filter((t) => (v.balances.get(t.address) ?? BigNumber.from(0)).gt(0))
-            .map((t) => (
-              <span key={t.address}>
-                <TokenLogo token={t} size={16} />
-                {amount(v.balances.get(t.address) as BigNumber, t.decimals, 2)} {t.symbol}
-              </span>
-            ))}
-          {v.tokens.every((t) => (v.balances.get(t.address) ?? BigNumber.from(0)).isZero()) && <Trans>Empty</Trans>}
+          {held.map((h) => (
+            <span key={h.token.address}>
+              <TokenLogo token={h.token} size={16} />
+              {amount(h.raw, h.token.decimals, 2)} {h.token.symbol} · {usd(h.usd)}
+            </span>
+          ))}
+          {held.length === 0 && <Trans>Empty</Trans>}
         </Holdings>
         <Stats>
           <Stat $tone={net(log) >= 0 ? 'good' : 'bad'}>
@@ -313,7 +371,51 @@ function AgentPanel({ address }: { address: string }) {
         </Trans>
       </ThemedText.BodySmall>
 
-      {mine && !editing && (
+      {received && (
+        <Note>
+          Sent to your wallet:{' '}
+          {received.map((h) => `${amount(h.raw, h.token.decimals, 4)} ${h.token.symbol}`).join(' + ')} (
+          {usd(received.reduce((s, h) => s + h.usd, 0))} at withdrawal).
+        </Note>
+      )}
+      {mine && confirming && (
+        <Panel>
+          <ThemedText.SubHeader>
+            <Trans>You’ll receive</Trans>
+          </ThemedText.SubHeader>
+          {held.length > 0 ? (
+            <HeldList held={held} />
+          ) : (
+            <ThemedText.BodySecondary>
+              <Trans>The agent holds nothing; closing only stops it.</Trans>
+            </ThemedText.BodySecondary>
+          )}
+          <ThemedText.BodySmall color="neutral2">
+            <Trans>
+              Each token comes back to your wallet as the agent holds it; nothing is swapped. The agent stops trading.
+              Dollar values are at the reference price now.
+            </Trans>
+          </ThemedText.BodySmall>
+          <Actions>
+            <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(false)}>
+              <Trans>Cancel</Trans>
+            </ButtonSecondary>
+            <ButtonPrimary
+              disabled={!!busy}
+              onClick={async () => {
+                const snapshot = held
+                if (await run('Withdraw all', async () => (await contract(address, AGENT_ABI)).close())) {
+                  setReceived(snapshot)
+                  setConfirming(false)
+                }
+              }}
+            >
+              {busy === 'Withdraw all' ? '…' : <Trans>Withdraw all and close</Trans>}
+            </ButtonPrimary>
+          </Actions>
+        </Panel>
+      )}
+      {mine && !editing && !confirming && (
         <Actions>
           <ButtonSecondary
             disabled={!!busy}
@@ -323,11 +425,8 @@ function AgentPanel({ address }: { address: string }) {
           >
             {busy === 'Pause' || busy === 'Resume' ? '…' : v.paused ? <Trans>Resume</Trans> : <Trans>Pause</Trans>}
           </ButtonSecondary>
-          <ButtonSecondary
-            disabled={!!busy}
-            onClick={() => run('Withdraw all', async () => (await contract(address, AGENT_ABI)).close())}
-          >
-            {busy === 'Withdraw all' ? '…' : <Trans>Withdraw all and close</Trans>}
+          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(true)}>
+            <Trans>Withdraw all and close</Trans>
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => run('Extend rent', () => extendRent(address, account))}>
             {busy === 'Extend rent' ? '…' : <Trans>Extend rent 1 month</Trans>}
@@ -378,7 +477,7 @@ function EditPools({
   current: string[]
   busy: boolean
   done: () => void
-  save: (pools: string[]) => Promise<void>
+  save: (pools: string[]) => Promise<boolean>
 }) {
   const q = useQuery({ queryKey: ['ubeagent', 'universe'], queryFn: () => universe(agentProvider()) })
   const [sel, setSel] = useState<Selection | null>(null)
@@ -402,7 +501,7 @@ function EditPools({
         </ButtonSecondary>
         <ButtonPrimary
           disabled={busy || chosen.length === 0}
-          onClick={() => save(chosen.map((p) => p.pool)).then(done)}
+          onClick={() => save(chosen.map((p) => p.pool)).then((ok) => ok && done())}
         >
           <Trans>Save</Trans> ({chosen.length} <Trans>pools</Trans>)
         </ButtonPrimary>
