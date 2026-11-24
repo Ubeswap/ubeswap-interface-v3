@@ -10,12 +10,12 @@ export const FACTORY_ABI = [
   'function basicMaxTokens() view returns (uint8)',
   'function selectionCharge(address[] oldPools, address[] newPools, uint64 paidUntil) view returns (uint256)',
   'function configVersion() view returns (uint256)',
+  'function listedPools() view returns (address[])',
   'function latest() view returns (address)',
   'function agentsOf(address user) view returns (address[])',
   'function isAgent(address) view returns (bool)',
   'function createAgent(address[] pools, uint256 months, address rentToken, bool autoUpdate, uint256 expectedVersion) returns (address agent)',
   'function extendRent(address agent, uint256 months, address rentToken)',
-  'event UniverseSet(address indexed pool, bool allowed)',
   'event AgentCreated(address indexed owner, address indexed agent, uint64 paidUntil)',
 ]
 

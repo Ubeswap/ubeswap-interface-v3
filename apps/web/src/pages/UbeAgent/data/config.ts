@@ -18,7 +18,7 @@ const MAINNET_FROM_BLOCK = 83571529
 /** The AgentFactory every build uses; REACT_APP_UBEAGENT_FACTORY points a build at another one (e.g. a local fork). */
 export const AGENT_FACTORY: string = process.env.REACT_APP_UBEAGENT_FACTORY || MAINNET_FACTORY
 
-/** The factory's deploy block: its pool list (UniverseSet logs) is read from here on. */
+/** The factory's deploy block: an agent's history (its Traded, Refueled and Withdrawn logs) is read from here on. */
 export const AGENT_FROM_BLOCK = process.env.REACT_APP_UBEAGENT_FACTORY
   ? Number(process.env.REACT_APP_UBEAGENT_FROM_BLOCK ?? '0')
   : MAINNET_FROM_BLOCK

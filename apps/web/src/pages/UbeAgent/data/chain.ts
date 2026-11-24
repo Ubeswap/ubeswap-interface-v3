@@ -111,15 +111,11 @@ export async function tokens(p: JsonRpcProvider, addrs: string[]): Promise<Map<s
   return new Map(uniq.map((a) => [a, tokenCache.get(a) as Token]))
 }
 
-/** Every pool the factory lists now (its UniverseSet log, then the factory's own record), with exchange, fee and tokens. */
+/** Every pool the factory lists now (`listedPools`, then the factory's own record), with exchange, fee and tokens. */
 export async function universe(p: JsonRpcProvider): Promise<PoolInfo[]> {
   const factory = factoryOf(p)
-  const last = new Map<string, boolean>()
-  for (const l of await scanLogs(p, factory.filters.UniverseSet(), AGENT_FROM_BLOCK)) {
-    const e = factory.interface.parseLog(l)
-    last.set(getAddress(e.args.pool), Boolean(e.args.allowed))
-  }
-  const pools = [...last].filter(([, on]) => on).map(([pool]) => pool)
+  // the factory keeps its listing on chain: one call, however old the factory is
+  const pools: string[] = ((await factory.listedPools()) as string[]).map((x) => getAddress(x))
   if (pools.length === 0) return []
   // the factory's record, the pool's own factory and fee (V2 pairs have no fee()): one multicall
   const r = await reads(
