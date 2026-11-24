@@ -301,15 +301,15 @@ function AgentPanel({ address }: { address: string }) {
           </Stat>
           <Stat>
             <small>
+              <Trans>Trades since start</Trans>
+            </small>
+            {log.length}
+          </Stat>
+          <Stat>
+            <small>
               <Trans>Trades, last 24 h</Trans>
             </small>
             {lastDay.length}
-          </Stat>
-          <Stat $tone={used >= 1 ? 'bad' : undefined}>
-            <small>
-              <Trans>Daily loss budget</Trans>
-            </small>
-            {cap === null ? 'unreadable' : `${Math.round(used * 100)}% used`}
           </Stat>
         </Stats>
       </Panel>

@@ -1,5 +1,5 @@
 /**
- * Create a UbeAgent: pick the exchanges and tokens it may trade, then the deposit and the rent term. Up to three
+ * Create a UbeAgent: pick the agent's kind (only the arbitrage agent is live), then the exchanges and tokens it may trade, then the deposit and the rent term. Up to three
  * signatures: rent approval, opening the agent (AgentFactory.createAgent), the deposit (a plain transfer to the agent).
  */
 import { getAddress } from '@ethersproject/address'
@@ -10,7 +10,7 @@ import { ButtonPrimary } from 'components/Button'
 import { parseUnits } from 'ethers/lib/utils'
 import { Trans } from 'i18n'
 import { useMemo, useState } from 'react'
-import { ArrowLeft } from 'react-feather'
+import { ArrowLeft, ArrowRight } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { StyledInternalLink, ThemedText } from 'theme/components'
@@ -32,6 +32,21 @@ const Back = styled(StyledInternalLink)`
   align-items: center;
   gap: 4px;
   width: fit-content;
+`
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: none;
+  color: ${({ theme }) => theme.accent1};
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 485;
+  cursor: pointer;
 `
 
 const AmountBox = styled.div`
@@ -74,9 +89,58 @@ const Consent = styled.label`
   }
 `
 
+const Kinds = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+const Kind = styled.button<{ $live?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px ${({ $live }) => ($live ? 'solid' : 'dashed')}
+    ${({ theme, $live }) => ($live ? theme.accent1 : theme.surface3)};
+  background: ${({ theme, $live }) => ($live ? theme.accent2 : theme.surface1)};
+  color: ${({ theme, $live }) => ($live ? theme.neutral1 : theme.neutral3)};
+  font-family: inherit;
+  text-align: left;
+  cursor: ${({ $live }) => ($live ? 'pointer' : 'default')};
+
+  span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 16px;
+    font-weight: 535;
+  }
+  small {
+    font-size: 13px;
+    font-weight: 485;
+    color: ${({ theme }) => theme.neutral2};
+  }
+  em {
+    margin-left: auto;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: ${({ theme }) => theme.surface3};
+    color: ${({ theme }) => theme.neutral2};
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 535;
+    white-space: nowrap;
+  }
+`
+
+/** Agent kinds coming later: listed, not selectable. */
+const COMING_SOON = ['Prices', 'Wallets', 'Daily notes', 'Trade', 'Travel', 'Sell', 'Hire', 'Research']
+
 export default function CreateAgent() {
   const { account } = useAgentTx()
-  const [step, setStep] = useState<'pools' | 'fund'>('pools')
+  const [step, setStep] = useState<'kind' | 'pools' | 'fund'>('kind')
   const [sel, setSel] = useState<Selection>(emptySelection)
   const q = useQuery({
     queryKey: ['ubeagent', 'universe'],
@@ -106,6 +170,42 @@ export default function CreateAgent() {
     )
   }
 
+  if (step === 'kind') {
+    return (
+      <Page>
+        <Back to="/ubeagent">
+          <ArrowLeft size={16} />
+          <Trans>Back to your agents</Trans>
+        </Back>
+        <ThemedText.HeadlineMedium>
+          <Trans>Create new agent</Trans>
+        </ThemedText.HeadlineMedium>
+        <ThemedText.BodySecondary>
+          <Trans>Choose what your agent does.</Trans>
+        </ThemedText.BodySecondary>
+        <Kinds>
+          <Kind $live onClick={() => setStep('pools')}>
+            <span>
+              <Trans>Arbitrage agent</Trans>
+              <small>
+                <Trans>Trades price gaps between pools for you.</Trans>
+              </small>
+            </span>
+            <ArrowRight size={20} style={{ marginLeft: 'auto' }} />
+          </Kind>
+          {COMING_SOON.map((k) => (
+            <Kind key={k} disabled aria-disabled="true">
+              <span>{k}</span>
+              <em>
+                <Trans>Coming soon</Trans>
+              </em>
+            </Kind>
+          ))}
+        </Kinds>
+      </Page>
+    )
+  }
+
   if (step === 'fund') {
     // the deposit is made in a token the user picked (hand-picked pools: any token they hold)
     return (
@@ -114,12 +214,12 @@ export default function CreateAgent() {
   }
   return (
     <Page>
-      <Back to="/ubeagent">
+      <BackButton onClick={() => setStep('kind')}>
         <ArrowLeft size={16} />
-        <Trans>Back to your agents</Trans>
-      </Back>
+        <Trans>Agent types</Trans>
+      </BackButton>
       <ThemedText.HeadlineMedium>
-        <Trans>Create new agent</Trans>
+        <Trans>Arbitrage agent</Trans>
       </ThemedText.HeadlineMedium>
       <ThemedText.BodySecondary>
         <Trans>
@@ -332,7 +432,7 @@ function Fund({
           Capital above ${HIGH_USD} doesn’t raise profit: opportunities are limited. A second agent gets more of them.
         </Note>
       )}
-      {tooLittle && <Note tone="warn">You don’t have that much {token.symbol} in your wallet.</Note>}
+      {tooLittle && <Note tone="warn">You don’t have enough {token.symbol} in your wallet.</Note>}
       <ThemedText.SubHeader>
         <Trans>Rent period</Trans>
         {rent && ` (${amount(rent.perMonth, rent.token.decimals)} ${rent.token.symbol}/month)`}
