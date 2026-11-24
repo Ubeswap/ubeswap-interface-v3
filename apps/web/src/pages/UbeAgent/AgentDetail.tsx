@@ -227,6 +227,8 @@ function AgentPanel({ address }: { address: string }) {
   const [error, setError] = useState<unknown>(null)
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState<'all' | 'profits' | 'rent' | null>(null)
+  /** the holdings shown when "Withdraw all" was opened: the panel keeps them while the page refreshes under it */
+  const [closing, setClosing] = useState<Held[] | null>(null)
   /** what the transaction in flight is waiting for, in the user's words */
   const [step, setStep] = useState<string | null>(null)
   /** what the last action did, once it landed */
@@ -490,8 +492,8 @@ function AgentPanel({ address }: { address: string }) {
           <ThemedText.SubHeader>
             <Trans>You’ll receive</Trans>
           </ThemedText.SubHeader>
-          {held.length > 0 ? (
-            <HeldList held={held} />
+          {(closing ?? held).length > 0 ? (
+            <HeldList held={closing ?? held} />
           ) : (
             <ThemedText.BodySecondary>
               <Trans>The agent holds nothing; closing only stops it.</Trans>
@@ -510,7 +512,7 @@ function AgentPanel({ address }: { address: string }) {
             <ButtonPrimary
               disabled={!!busy}
               onClick={async () => {
-                const snapshot = held
+                const snapshot = closing ?? held
                 if (await run('Withdraw all', async () => (await contract(address, AGENT_ABI)).close())) {
                   setReceived(snapshot)
                   setConfirming(null)
@@ -552,7 +554,13 @@ function AgentPanel({ address }: { address: string }) {
           >
             {busy === 'Pause' || busy === 'Resume' ? '…' : v.paused ? <Trans>Resume</Trans> : <Trans>Pause</Trans>}
           </ButtonSecondary>
-          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('all')}>
+          <ButtonSecondary
+            disabled={!!busy}
+            onClick={() => {
+              setClosing(held)
+              setConfirming('all')
+            }}
+          >
             <Trans>Withdraw all and close</Trans>
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('rent')}>
@@ -583,12 +591,14 @@ function AgentPanel({ address }: { address: string }) {
       )}
       {busy && step && <ReadingLine>{step}</ReadingLine>}
       {done && !busy && <Note tone="good">{done}</Note>}
-      {mine && !editing && !confirming && !profitTake && (
+      {mine && !editing && !confirming && !profitTake && held.length > 0 && (
         <ThemedText.BodySmall color="neutral2">
           {profit > 0
             ? `Profit so far ${usd(profit, { digits: 4 })} · withdrawable from $0.01 (after gas).`
             : profit < 0
-            ? `No profit yet: trading is ${usd(-profit, { digits: 4 })} below the gas paid.`
+            ? `No profit to take: results so far are ${usd(-profit, {
+                digits: 4,
+              })} below the gas paid and earlier withdrawals.`
             : 'No profit yet.'}
         </ThemedText.BodySmall>
       )}

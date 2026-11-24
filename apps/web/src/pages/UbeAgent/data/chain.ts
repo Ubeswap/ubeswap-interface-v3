@@ -325,19 +325,29 @@ export type History = {
   trades: Trade[]
   /** CELO (wei) the agent paid for its own gas */
   refueled: BigNumber
-  /** token => amount the owner withdrew (`withdraw`, `close`; native CELO under CELO's address) */
+  /** token => amount the owner took out with `withdraw` (profit), not with `close` (everything); native CELO under CELO's */
   withdrawn: Map<string, BigNumber>
 }
 
-/** The agent's Traded, Refueled and Withdrawn events since the factory's deploy, in one log query per span. */
+/**
+ * The agent's Traded, Refueled and Withdrawn events since the factory's deploy, in one log query per span. Withdrawals
+ * made by `close` (its transaction also pauses the agent) return the deposit, not profit, so they are left out.
+ */
 export async function history(p: JsonRpcProvider, address: string, celo: string): Promise<History> {
   const a = new Contract(address, AGENT_ABI, p)
-  const topics = ['Traded', 'Refueled', 'Withdrawn'].map((e) => a.interface.getEventTopic(e))
+  const topics = ['Traded', 'Refueled', 'Withdrawn', 'PausedSet'].map((e) => a.interface.getEventTopic(e))
   const trades: Trade[] = []
   let refueled = BigNumber.from(0)
   const withdrawn = new Map<string, BigNumber>()
-  for (const l of await scanLogs(p, { address, topics: [topics] }, AGENT_FROM_BLOCK)) {
-    const e = a.interface.parseLog(l)
+  const logs = (await scanLogs(p, { address, topics: [topics] }, AGENT_FROM_BLOCK)).map((l) => ({
+    l,
+    e: a.interface.parseLog(l),
+  }))
+  const closes = new Set(
+    logs.filter(({ e }) => e.name === 'PausedSet' && e.args.paused).map(({ l }) => l.transactionHash)
+  )
+  for (const { l, e } of logs) {
+    if (e.name === 'PausedSet') continue
     if (e.name === 'Traded') {
       trades.push({
         block: l.blockNumber,
@@ -349,7 +359,7 @@ export async function history(p: JsonRpcProvider, address: string, celo: string)
       })
     } else if (e.name === 'Refueled') {
       refueled = refueled.add(e.args.amount)
-    } else {
+    } else if (!closes.has(l.transactionHash)) {
       // address(0) is native CELO, the same balance as CELO's token
       const t = e.args.token === constants.AddressZero ? getAddress(celo) : getAddress(e.args.token)
       withdrawn.set(t, (withdrawn.get(t) ?? BigNumber.from(0)).add(e.args.amount))

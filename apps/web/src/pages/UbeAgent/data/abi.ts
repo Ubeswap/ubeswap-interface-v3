@@ -37,6 +37,7 @@ export const AGENT_ABI = [
   'function withdraw(address token, uint256 amount)',
   'event Refueled(address indexed executor, uint256 amount)',
   'event Withdrawn(address indexed token, uint256 amount)',
+  'event PausedSet(bool paused)',
   'event Traded(address indexed pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 valueIn, uint256 valueOut)',
 ]
 
