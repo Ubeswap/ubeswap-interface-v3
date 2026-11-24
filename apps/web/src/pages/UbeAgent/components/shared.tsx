@@ -36,6 +36,7 @@ const STATUS_LABEL: Record<AgentStatus, string> = {
   running: 'Running',
   paused: 'Paused',
   stopped: 'Stopped',
+  closed: 'Closed',
 }
 
 const pulse = keyframes`
@@ -70,6 +71,7 @@ export function useStatusColor(status: AgentStatus): string {
   const theme = useTheme()
   if (status === 'running') return theme.success
   if (status === 'paused') return theme.warning2
+  if (status === 'closed') return theme.neutral2
   return theme.neutral3
 }
 

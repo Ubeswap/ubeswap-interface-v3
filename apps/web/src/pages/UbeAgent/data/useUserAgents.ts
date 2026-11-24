@@ -4,7 +4,8 @@ import { useWeb3React } from '@web3-react/core'
 import { agent, agentsOf, agentUsd, prices } from './chain'
 import { agentProvider } from './config'
 
-export type AgentStatus = 'running' | 'paused' | 'stopped'
+/** `closed`: paused and empty (Withdraw all); funding it again resumes it */
+export type AgentStatus = 'running' | 'paused' | 'stopped' | 'closed'
 
 export type AgentStrategy = 'Arbitrage'
 
@@ -45,7 +46,7 @@ export function useUserAgents(): { agents: UserAgent[]; loading: boolean; error:
         number: i + 1,
         address: v.address,
         strategy: 'Arbitrage',
-        status: v.paidUntil < now ? 'stopped' : v.paused ? 'paused' : 'running',
+        status: v.paidUntil < now ? 'stopped' : v.paused ? (agentUsd(v, px) === 0 ? 'closed' : 'paused') : 'running',
         poolCount: v.pools.length,
         rentPaidUntil: v.paidUntil * 1000,
         balanceUsd: agentUsd(v, px),

@@ -15,6 +15,7 @@ import { useParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { ExternalLink, StyledInternalLink, ThemedText } from 'theme/components'
 
+import { AddFunds } from './components/AddFunds'
 import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/shared'
 import { AgentSkeleton, PickerSkeleton, ReadingLine } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
@@ -226,7 +227,7 @@ function AgentPanel({ address }: { address: string }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [editing, setEditing] = useState(false)
-  const [confirming, setConfirming] = useState<'all' | 'profits' | 'rent' | null>(null)
+  const [confirming, setConfirming] = useState<'all' | 'profits' | 'rent' | 'fund' | null>(null)
   /** the holdings shown when "Withdraw all" was opened: the panel keeps them while the page refreshes under it */
   const [closing, setClosing] = useState<Held[] | null>(null)
   /** what the transaction in flight is waiting for, in the user's words */
@@ -295,7 +296,9 @@ function AgentPanel({ address }: { address: string }) {
   // valueIn/valueOut are the contract's own reference valuation (USD₮, 6 decimals), before gas
   const net = (xs: typeof log) => xs.reduce((s, t) => s + Number(t.valueOut.sub(t.valueIn).toString()) / 1e6, 0)
   const lastDay = log.filter((t) => t.block + DAY_BLOCKS >= head)
-  const status: AgentStatus = v.paidUntil < now ? 'stopped' : v.paused ? 'paused' : 'running'
+  const empty = v.tokens.every((t) => (v.balances.get(t.address) ?? BigNumber.from(0)).isZero())
+  const closed = v.paused && empty
+  const status: AgentStatus = v.paidUntil < now ? 'stopped' : closed ? 'closed' : v.paused ? 'paused' : 'running'
   const cap = v.totalValue ? (Number(v.totalValue.toString()) * v.lossBps) / 1e4 / 2 : null
   const used = cap ? Math.min(1, Number(v.lossUsed.toString()) / cap) : 0
   const symbol = (t: string) => v.tokens.find((x) => x.address === t)?.symbol ?? shortenAddr(t)
@@ -524,7 +527,36 @@ function AgentPanel({ address }: { address: string }) {
           </Actions>
         </Panel>
       )}
-      {mine && !editing && !confirming && (
+      {mine && confirming === 'fund' && (
+        <AddFunds
+          agentAddr={address}
+          tokens={v.tokens}
+          px={px}
+          closed={closed}
+          busy={!!busy}
+          run={run}
+          setStep={setStep}
+          done={(m) => {
+            setConfirming(null)
+            setDone(m)
+          }}
+          cancel={() => setConfirming(null)}
+        />
+      )}
+      {mine && !editing && !confirming && closed && (
+        <>
+          <ThemedText.BodySmall color="neutral2">
+            <Trans>
+              This agent is closed: its funds went back to your wallet and it doesn’t trade. Fund it again to restart it
+              with the same tokens.
+            </Trans>
+          </ThemedText.BodySmall>
+          <ButtonPrimary disabled={!!busy} onClick={() => setConfirming('fund')}>
+            <Trans>Fund again</Trans>
+          </ButtonPrimary>
+        </>
+      )}
+      {mine && !editing && !confirming && !closed && (
         <Actions>
           <ButtonSecondary disabled={!!busy || !profitTake} onClick={() => setConfirming('profits')}>
             {profitTake ? (
@@ -568,6 +600,9 @@ function AgentPanel({ address }: { address: string }) {
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => setEditing(true)}>
             <Trans>Change tokens</Trans>
+          </ButtonSecondary>
+          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('fund')}>
+            <Trans>Add funds</Trans>
           </ButtonSecondary>
         </Actions>
       )}
