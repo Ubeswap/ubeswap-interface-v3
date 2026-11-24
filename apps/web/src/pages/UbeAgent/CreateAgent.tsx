@@ -139,6 +139,11 @@ const Kind = styled.button<{ $live?: boolean }>`
 /** Agent kinds coming later: listed, not selectable. */
 const COMING_SOON = ['Prices', 'Wallets', 'Daily notes', 'Trade', 'Travel', 'Sell', 'Hire', 'Research']
 
+/** What a wallet balance of `t` is worth in USD (0 when unpriced). */
+function walletUsd(t: Token, raw: BigNumber | undefined, px: Map<string, number>): number {
+  return raw ? (Number(raw.toString()) / 10 ** t.decimals) * (px.get(t.address) ?? 0) : 0
+}
+
 export default function CreateAgent() {
   const { account } = useAgentTx()
   const [step, setStep] = useState<'kind' | 'pools' | 'fund'>('kind')
@@ -271,7 +276,8 @@ function Fund({
     for (const p of pools) for (const t of [p.token0, p.token1]) if (!only || only.has(t.address)) m.set(t.address, t)
     return [...m.values()]
   }, [pools, only])
-  const [tokenAddr, setToken] = useState<string>(held[0]?.address)
+  /** the token the user picked; until then the one their wallet holds most of (in USD) */
+  const [tokenAddr, setToken] = useState<string | undefined>()
   const [usdText, setUsd] = useState('50')
   const [months, setMonths] = useState(1)
   const [consent, setConsent] = useState(false)
@@ -312,7 +318,13 @@ function Fund({
     },
   })
 
-  const token = held.find((t) => t.address === tokenAddr) ?? held[0]
+  const richest = q.data
+    ? [...held].sort(
+        (a, b) =>
+          walletUsd(b, q.data.wallet.get(b.address), q.data.px) - walletUsd(a, q.data.wallet.get(a.address), q.data.px)
+      )[0]
+    : undefined
+  const token = held.find((t) => t.address === (tokenAddr ?? richest?.address)) ?? held[0]
   const dollars = Number(usdText.replace(',', '.')) || 0
   const price = q.data?.px.get(token.address)
   // from a decimal string: a float times 10^decimals passes 2^53, which BigNumber refuses

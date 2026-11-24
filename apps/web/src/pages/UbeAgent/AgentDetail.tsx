@@ -538,6 +538,15 @@ function AgentPanel({ address }: { address: string }) {
           }
         />
       )}
+      {mine && !editing && !confirming && !profitTake && (
+        <ThemedText.BodySmall color="neutral2">
+          {profit > 0
+            ? `Profit so far ${usd(profit, { digits: 4 })} · withdrawable from $0.01 (after gas).`
+            : profit < 0
+            ? `No profit yet: trading is ${usd(-profit, { digits: 4 })} below the gas paid.`
+            : 'No profit yet.'}
+        </ThemedText.BodySmall>
+      )}
       <Failure error={error} />
       <ThemedText.BodySmall color="neutral3">
         <Trans>Updated</Trans> {new Date(now * 1000).toLocaleTimeString()} · block #{head}
