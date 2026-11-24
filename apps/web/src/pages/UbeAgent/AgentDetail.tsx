@@ -1,6 +1,6 @@
 /**
  * One agent's page: balance, results, recent trades, and the owner's controls (pause/resume, extend rent, change
- * tokens, update to the factory's latest version, withdraw everything and close).
+ * tokens, add funds, withdraw profits or everything).
  */
 import { getAddress, isAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
@@ -376,24 +376,6 @@ function AgentPanel({ address }: { address: string }) {
       )}
       {v.totalValue === null && (
         <Note tone="warn">The reference price is far from its average right now; trading waits until it settles.</Note>
-      )}
-      {mine && v.implementation !== v.latest && (
-        <Panel>
-          <ThemedText.SubHeader>
-            <Trans>A new version is available</Trans>
-          </ThemedText.SubHeader>
-          <ThemedText.BodySmall color="neutral2">
-            <Trans>
-              Updating is your call: the factory can’t apply any change to your agent without your approval.
-            </Trans>
-          </ThemedText.BodySmall>
-          <ButtonSecondary
-            disabled={!!busy}
-            onClick={() => run('Update', async () => (await contract(address, AGENT_ABI)).update(v.configVersion))}
-          >
-            <Trans>Update</Trans>
-          </ButtonSecondary>
-        </Panel>
       )}
 
       <ThemedText.SubHeader>

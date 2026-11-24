@@ -358,7 +358,7 @@ function Fund({
           pools.map((p) => p.pool),
           months,
           rent.token.address,
-          false,
+          true, // automatic updates: a new version reaches the agent without the user doing anything
           q.data.version
         ),
         'The agent could not be opened (the transaction reverted).'

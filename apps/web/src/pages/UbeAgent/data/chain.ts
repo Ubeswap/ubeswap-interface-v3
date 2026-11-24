@@ -245,8 +245,6 @@ export type AgentView = {
   totalValue: BigNumber | null
   lossUsed: BigNumber
   lossBps: number
-  implementation: string
-  latest: string
   configVersion: BigNumber
 }
 
@@ -256,19 +254,16 @@ export async function agent(p: JsonRpcProvider, address: string): Promise<AgentV
   // wallet into signing calls to it
   if (!(await factory.isAgent(address))) throw new NotAnAgent(address)
   const a = new Contract(address, AGENT_ABI, p)
-  const [owner, paused, paidUntil, pools, held, lossUsed, lossBps, implementation, latest, configVersion] =
-    await Promise.all([
-      a.owner(),
-      a.paused(),
-      a.paidUntil(),
-      a.selectedPools(),
-      a.heldTokens(),
-      a.lossUsed(),
-      a.lossBps(),
-      a.implementation(),
-      factory.latest(),
-      factory.configVersion(),
-    ])
+  const [owner, paused, paidUntil, pools, held, lossUsed, lossBps, configVersion] = await Promise.all([
+    a.owner(),
+    a.paused(),
+    a.paidUntil(),
+    a.selectedPools(),
+    a.heldTokens(),
+    a.lossUsed(),
+    a.lossBps(),
+    factory.configVersion(),
+  ])
   const toks = [...(await tokens(p, held)).values()]
   const bal: BigNumber[] = await Promise.all(toks.map((t) => erc20(t.address, p).balanceOf(address)))
   let totalValue: BigNumber | null = null
@@ -288,8 +283,6 @@ export async function agent(p: JsonRpcProvider, address: string): Promise<AgentV
     totalValue,
     lossUsed,
     lossBps: Number(lossBps),
-    implementation: getAddress(implementation),
-    latest: getAddress(latest),
     configVersion,
   }
 }
