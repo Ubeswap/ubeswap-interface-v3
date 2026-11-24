@@ -17,6 +17,7 @@ import { StyledInternalLink, ThemedText } from 'theme/components'
 
 import { ConnectWalletButton } from './components/actions'
 import { AgentIllustration } from './components/shared'
+import { PickerSkeleton } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Chip, Chips, Failure, Note, Page, Panel, Row, TokenLogo, usd } from './components/ui'
 import { ERC20_ABI, FACTORY_ABI } from './data/abi'
@@ -227,23 +228,23 @@ export default function CreateAgent() {
           exchanges.
         </Trans>
       </ThemedText.BodySecondary>
-      {q.isLoading && (
-        <ThemedText.BodySecondary>
-          <Trans>Reading pools from chain…</Trans>
-        </ThemedText.BodySecondary>
-      )}
+      {q.isLoading && <PickerSkeleton label={<Trans>Reading pools from chain…</Trans>} />}
       <Failure error={q.error} />
-      {q.data && <TokenPicker all={all} sel={sel} setSel={setSel} />}
-      <Panel>
-        <Row label={<Trans>Pools traded</Trans>} value={String(picked.size)} />
-        <Row
-          label={<Trans>Reference pools (for rebalancing, added automatically)</Trans>}
-          value={String(chosen.length - picked.size)}
-        />
-      </Panel>
-      <ButtonPrimary disabled={picked.size === 0} onClick={() => setStep('fund')}>
-        <Trans>Next: add funds</Trans>
-      </ButtonPrimary>
+      {q.data && (
+        <>
+          <TokenPicker all={all} sel={sel} setSel={setSel} />
+          <Panel>
+            <Row label={<Trans>Pools traded</Trans>} value={String(picked.size)} />
+            <Row
+              label={<Trans>Reference pools (for rebalancing, added automatically)</Trans>}
+              value={String(chosen.length - picked.size)}
+            />
+          </Panel>
+          <ButtonPrimary disabled={picked.size === 0} onClick={() => setStep('fund')}>
+            <Trans>Next: add funds</Trans>
+          </ButtonPrimary>
+        </>
+      )}
     </Page>
   )
 }

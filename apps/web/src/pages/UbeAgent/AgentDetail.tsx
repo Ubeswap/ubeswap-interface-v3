@@ -16,6 +16,7 @@ import styled from 'styled-components'
 import { ExternalLink, StyledInternalLink, ThemedText } from 'theme/components'
 
 import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/shared'
+import { AgentSkeleton, PickerSkeleton } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
@@ -269,9 +270,7 @@ function AgentPanel({ address }: { address: string }) {
           <Trans>Back to your agents</Trans>
         </Back>
         {q.isLoading ? (
-          <ThemedText.BodySecondary>
-            <Trans>Reading from chain…</Trans>
-          </ThemedText.BodySecondary>
+          <AgentSkeleton label={<Trans>Reading the agent from chain…</Trans>} />
         ) : (
           <Failure error={q.error} />
         )}
@@ -593,13 +592,7 @@ function EditPools({
   const q = useQuery({ queryKey: ['ubeagent', 'universe'], queryFn: () => universe(agentProvider()) })
   const [sel, setSel] = useState<Selection | null>(null)
   if (!q.data) {
-    return q.error ? (
-      <Failure error={q.error} />
-    ) : (
-      <ThemedText.BodySecondary>
-        <Trans>Reading pools…</Trans>
-      </ThemedText.BodySecondary>
-    )
+    return q.error ? <Failure error={q.error} /> : <PickerSkeleton label={<Trans>Reading pools from chain…</Trans>} />
   }
   const s = sel ?? selectionOf(q.data, current)
   const chosen = withReferences(q.data, pickedPools(q.data, s))
