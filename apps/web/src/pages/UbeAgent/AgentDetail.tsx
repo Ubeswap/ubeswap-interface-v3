@@ -16,7 +16,7 @@ import styled from 'styled-components'
 import { ExternalLink, StyledInternalLink, ThemedText } from 'theme/components'
 
 import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/shared'
-import { AgentSkeleton, PickerSkeleton } from './components/Skeleton'
+import { AgentSkeleton, PickerSkeleton, ReadingLine } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
@@ -226,7 +226,11 @@ function AgentPanel({ address }: { address: string }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [editing, setEditing] = useState(false)
-  const [confirming, setConfirming] = useState<'all' | 'profits' | null>(null)
+  const [confirming, setConfirming] = useState<'all' | 'profits' | 'rent' | null>(null)
+  /** what the transaction in flight is waiting for, in the user's words */
+  const [step, setStep] = useState<string | null>(null)
+  /** what the last action did, once it landed */
+  const [done, setDone] = useState<string | null>(null)
   /** what the last withdrawal sent to the wallet, as shown when it was confirmed */
   const [received, setReceived] = useState<Held[] | null>(null)
 
@@ -249,16 +253,22 @@ function AgentPanel({ address }: { address: string }) {
 
   const run: Run = async (label, send) => {
     setError(null)
+    setDone(null)
     setBusy(label)
+    setStep(`${label}: confirm in your wallet…`)
     try {
-      await settle(await send(), `${label}: the transaction reverted.`)
+      const tx = await send()
+      setStep(`${label}: waiting for the transaction…`)
+      await settle(tx, `${label}: the transaction reverted.`)
       await qc.invalidateQueries({ queryKey: ['ubeagent'] })
+      await q.refetch()
       return true
     } catch (e) {
       setError(e)
       return false
     } finally {
       setBusy(null)
+      setStep(null)
     }
   }
 
@@ -413,11 +423,32 @@ function AgentPanel({ address }: { address: string }) {
       </ThemedText.BodySmall>
 
       {received && (
-        <Note>
+        <Note tone="good">
           Sent to your wallet:{' '}
           {received.map((h) => `${amount(h.raw, h.token.decimals, 4)} ${h.token.symbol}`).join(' + ')} (
           {usd(received.reduce((s, h) => s + h.usd, 0))} at withdrawal).
         </Note>
+      )}
+      {mine && confirming === 'rent' && (
+        <RentConfirm
+          owner={account}
+          pools={v.pools}
+          paidUntil={v.paidUntil}
+          now={now}
+          busy={!!busy}
+          cancel={() => setConfirming(null)}
+          confirm={async (quote) => {
+            if (await run('Extend rent', () => extendRent(address, v.pools, account))) {
+              setConfirming(null)
+              setDone(
+                `Rent extended to ${formatDate(quote.until * 1000)} · paid ${amount(
+                  quote.price,
+                  quote.token.decimals
+                )} ${quote.token.symbol}.`
+              )
+            }
+          }}
+        />
       )}
       {mine && confirming === 'profits' && profitTake && (
         <Panel>
@@ -504,20 +535,28 @@ function AgentPanel({ address }: { address: string }) {
           </ButtonSecondary>
           <ButtonSecondary
             disabled={!!busy}
-            onClick={() =>
-              run(v.paused ? 'Resume' : 'Pause', async () => (await contract(address, AGENT_ABI)).setPaused(!v.paused))
-            }
+            onClick={async () => {
+              const resume = v.paused
+              if (
+                await run(resume ? 'Resume' : 'Pause', async () =>
+                  (await contract(address, AGENT_ABI)).setPaused(!resume)
+                )
+              ) {
+                setDone(
+                  resume
+                    ? 'Agent running again: it trades from the next opportunity.'
+                    : 'Agent paused: nothing trades it until you resume. Your funds stay in it.'
+                )
+              }
+            }}
           >
             {busy === 'Pause' || busy === 'Resume' ? '…' : v.paused ? <Trans>Resume</Trans> : <Trans>Pause</Trans>}
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('all')}>
             <Trans>Withdraw all and close</Trans>
           </ButtonSecondary>
-          <ButtonSecondary
-            disabled={!!busy}
-            onClick={() => run('Extend rent', () => extendRent(address, v.pools, account))}
-          >
-            {busy === 'Extend rent' ? '…' : <Trans>Extend rent 1 month</Trans>}
+          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('rent')}>
+            <Trans>Extend rent 1 month</Trans>
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => setEditing(true)}>
             <Trans>Change tokens</Trans>
@@ -530,14 +569,20 @@ function AgentPanel({ address }: { address: string }) {
           paidUntil={v.paidUntil}
           busy={!!busy}
           done={() => setEditing(false)}
-          save={(pools) =>
-            run('Save tokens', async () => {
-              await payWidening(v.pools, pools, v.paidUntil, account)
+          save={async (pools) => {
+            let paid = ''
+            const ok = await run('Save tokens', async () => {
+              paid = await payWidening(v.pools, pools, v.paidUntil, account)
+              setStep('Save tokens: confirm the new selection in your wallet…')
               return (await contract(address, AGENT_ABI)).setPools(pools, v.configVersion)
             })
-          }
+            if (ok) setDone(`Tokens saved: the agent trades ${pools.length} pools now${paid ? ` · paid ${paid}` : ''}.`)
+            return ok
+          }}
         />
       )}
+      {busy && step && <ReadingLine>{step}</ReadingLine>}
+      {done && !busy && <Note tone="good">{done}</Note>}
       {mine && !editing && !confirming && !profitTake && (
         <ThemedText.BodySmall color="neutral2">
           {profit > 0
@@ -555,15 +600,21 @@ function AgentPanel({ address }: { address: string }) {
   )
 
   /** A selection with a higher rent costs the difference for the time already paid: approve it to the factory. */
+  /** Approves the rent difference a wider selection costs; returns it in words ("0.2 USD₮ rent difference"), or ''. */
   async function payWidening(old: string[], pools: string[], paidUntil: number, owner: string | undefined) {
     if (!owner) throw new Error('Connect a wallet first.')
     const reader = new Contract(AGENT_FACTORY, FACTORY_ABI, agentProvider())
     const due: BigNumber = await reader.selectionCharge(old, pools, paidUntil)
-    if (due.isZero()) return
-    const erc20 = await contract(await reader.NUMERAIRE(), ERC20_ABI)
+    if (due.isZero()) return ''
+    const numeraire = getAddress(await reader.NUMERAIRE())
+    const tok = (await tokens(agentProvider(), [numeraire])).get(numeraire) as Token
+    const words = `${amount(due, tok.decimals)} ${tok.symbol} rent difference`
+    const erc20 = await contract(numeraire, ERC20_ABI)
     if ((await erc20.allowance(owner, AGENT_FACTORY)).lt(due)) {
+      setStep(`Approve ${words} in your wallet…`)
       await settle(await erc20.approve(AGENT_FACTORY, due), 'The approval for the rent difference reverted.')
     }
+    return words
   }
 
   /** One more month of rent in the factory's numeraire, at the current selection's price: approval first when short. */
@@ -579,7 +630,9 @@ function AgentPanel({ address }: { address: string }) {
     const price: BigNumber = await reader.rentFor(pools, token)
     const erc20 = await contract(token, ERC20_ABI)
     if ((await erc20.allowance(owner, factoryAddr)).lt(price)) {
+      setStep('Extend rent: approve the rent in your wallet (1 of 2)…')
       await settle(await erc20.approve(factoryAddr, price), 'The rent approval reverted.')
+      setStep('Extend rent: confirm the extension in your wallet (2 of 2)…')
     }
     return (await contract(factoryAddr, FACTORY_ABI)).extendRent(agentAddr, 1, token)
   }
@@ -651,5 +704,91 @@ function SelectionRent({ current, next, paidUntil }: { current: string[]; next: 
       Rent for this selection: {amount(perMonth, token.decimals)} {token.symbol}/month.
       {due.gt(0) && ` Saving costs ${amount(due, token.decimals)} ${token.symbol} for the time already paid.`}
     </Note>
+  )
+}
+
+type RentQuote = { price: BigNumber; token: Token; until: number; wallet: BigNumber | null }
+
+/** One more month of rent: what it costs at this selection's price and the date it pays up to, before anything is sent. */
+function RentConfirm({
+  owner,
+  pools,
+  paidUntil,
+  now,
+  busy,
+  cancel,
+  confirm,
+}: {
+  owner: string | undefined
+  pools: string[]
+  paidUntil: number
+  now: number
+  busy: boolean
+  cancel: () => void
+  confirm: (q: RentQuote) => Promise<void>
+}) {
+  const q = useQuery({
+    queryKey: ['ubeagent', 'rentQuote', pools.join(), paidUntil, owner],
+    queryFn: async (): Promise<RentQuote> => {
+      const f = new Contract(AGENT_FACTORY, FACTORY_ABI, agentProvider())
+      const numeraire = getAddress(await f.NUMERAIRE())
+      const [price, toks, wallet] = await Promise.all([
+        f.rentFor(pools, numeraire) as Promise<BigNumber>,
+        tokens(agentProvider(), [numeraire]),
+        owner ? (new Contract(numeraire, ERC20_ABI, agentProvider()).balanceOf(owner) as Promise<BigNumber>) : null,
+      ])
+      // the factory extends from the paid-up date, or from now when rent already ran out
+      return { price, token: toks.get(numeraire) as Token, until: Math.max(paidUntil, now) + 30 * 86400, wallet }
+    },
+  })
+  const short = !!q.data?.wallet && q.data.wallet.lt(q.data.price)
+  return (
+    <Panel>
+      <ThemedText.SubHeader>
+        <Trans>Extend rent by 1 month</Trans>
+      </ThemedText.SubHeader>
+      {q.data ? (
+        <Receive>
+          <div>
+            <Trans>You pay</Trans>
+            <b>
+              {amount(q.data.price, q.data.token.decimals)} {q.data.token.symbol}
+            </b>
+          </div>
+          <div>
+            <Trans>Rent paid until</Trans>
+            <b>
+              {formatDate(paidUntil * 1000)} → {formatDate(q.data.until * 1000)}
+            </b>
+          </div>
+        </Receive>
+      ) : q.error ? (
+        <Failure error={q.error} />
+      ) : (
+        <ReadingLine>
+          <Trans>Reading the rent…</Trans>
+        </ReadingLine>
+      )}
+      {short && q.data && (
+        <Note tone="warn">
+          Your wallet holds {amount(q.data.wallet as BigNumber, q.data.token.decimals)} {q.data.token.symbol}; one month
+          costs {amount(q.data.price, q.data.token.decimals)} {q.data.token.symbol}.
+        </Note>
+      )}
+      <ThemedText.BodySmall color="neutral2">
+        <Trans>
+          The price is this agent’s current selection: up to 2 exchanges and 2 tokens pay the basic rent. Up to two
+          signatures: the rent approval (when needed), then the extension.
+        </Trans>
+      </ThemedText.BodySmall>
+      <Actions>
+        <ButtonSecondary disabled={busy} onClick={cancel}>
+          <Trans>Cancel</Trans>
+        </ButtonSecondary>
+        <ButtonPrimary disabled={busy || !q.data || short} onClick={() => q.data && confirm(q.data)}>
+          {busy ? '…' : q.data ? `Pay ${amount(q.data.price, q.data.token.decimals)} ${q.data.token.symbol}` : '…'}
+        </ButtonPrimary>
+      </Actions>
+    </Panel>
   )
 }
