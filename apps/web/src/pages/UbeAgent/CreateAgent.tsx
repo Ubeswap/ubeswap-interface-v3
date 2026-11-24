@@ -21,7 +21,7 @@ import { PickerSkeleton } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Chip, Chips, Failure, Note, Page, Panel, Row, TokenLogo, usd } from './components/ui'
 import { ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { PoolInfo, prices, Token, tokens, universe } from './data/chain'
+import { PoolInfo, prices, Token, tokens, universe, UNIVERSE_FRESH_MS } from './data/chain'
 import { AGENT_FACTORY, agentProvider, CELO_TOKEN, HIGH_USD, IDEAL_USD, MIN_USD } from './data/config'
 import { emptySelection, picked as pickedPools, Selection, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
@@ -146,6 +146,8 @@ export default function CreateAgent() {
   const q = useQuery({
     queryKey: ['ubeagent', 'universe'],
     queryFn: () => universe(agentProvider()),
+    // the listing changes only when the factory's owner edits it
+    staleTime: UNIVERSE_FRESH_MS,
   })
 
   const all = q.data ?? []

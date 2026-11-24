@@ -20,7 +20,7 @@ import { AgentSkeleton, PickerSkeleton } from './components/Skeleton'
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { agent, agentUsd, AgentView, history, prices, Token, tokens, universe } from './data/chain'
+import { agent, agentUsd, AgentView, history, prices, Token, tokens, universe, UNIVERSE_FRESH_MS } from './data/chain'
 import { AGENT_FACTORY, agentProvider, CELO_TOKEN, DAY_BLOCKS } from './data/config'
 import { picked as pickedPools, Selection, selectionOf, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
@@ -589,7 +589,11 @@ function EditPools({
   done: () => void
   save: (pools: string[]) => Promise<boolean>
 }) {
-  const q = useQuery({ queryKey: ['ubeagent', 'universe'], queryFn: () => universe(agentProvider()) })
+  const q = useQuery({
+    queryKey: ['ubeagent', 'universe'],
+    queryFn: () => universe(agentProvider()),
+    staleTime: UNIVERSE_FRESH_MS,
+  })
   const [sel, setSel] = useState<Selection | null>(null)
   if (!q.data) {
     return q.error ? <Failure error={q.error} /> : <PickerSkeleton label={<Trans>Reading pools from chain…</Trans>} />
