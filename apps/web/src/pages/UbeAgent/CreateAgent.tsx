@@ -382,7 +382,13 @@ function Fund({
   }
 
   const label = {
-    idle: `Rent and deposit · ${usd(dollars + (rent ? months : 0))}`,
+    // the rent at its token's price (the selection's monthly rent, not a fixed $1)
+    idle: `Rent and deposit · ${usd(
+      dollars +
+        (rent
+          ? (Number(rentAmount.toString()) / 10 ** rent.token.decimals) * (q.data?.px.get(rent.token.address) ?? 1)
+          : 0)
+    )}`,
     approve: '1/3 Approving rent…',
     create: '2/3 Opening agent…',
     deposit: '3/3 Depositing…',
