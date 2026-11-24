@@ -4,6 +4,7 @@
  */
 import { getAddress } from '@ethersproject/address'
 import { BigNumber } from '@ethersproject/bignumber'
+import { AddressZero } from '@ethersproject/constants'
 import { Contract } from '@ethersproject/contracts'
 import { JsonRpcProvider } from '@ethersproject/providers'
 
@@ -239,23 +240,50 @@ export type Trade = {
   valueOut: BigNumber
 }
 
-/** The agent's trades (its Traded events), newest first. */
-export async function trades(p: JsonRpcProvider, address: string): Promise<Trade[]> {
+/** What has left the agent besides trades: native CELO paid to executors for gas, and the owner's withdrawals. */
+export type History = {
+  /** newest first */
+  trades: Trade[]
+  /** CELO (wei) the agent paid for its own gas */
+  refueled: BigNumber
+  /** token => amount the owner withdrew (`withdraw`, `close`; native CELO under CELO's address) */
+  withdrawn: Map<string, BigNumber>
+}
+
+/** The agent's Traded, Refueled and Withdrawn events since the factory's deploy, in one log query per span. */
+export async function history(p: JsonRpcProvider, address: string, celo: string): Promise<History> {
   const a = new Contract(address, AGENT_ABI, p)
+  const topics = ['Traded', 'Refueled', 'Withdrawn'].map((e) => a.interface.getEventTopic(e))
   const head = await p.getBlockNumber()
-  const out: Trade[] = []
+  const trades: Trade[] = []
+  let refueled = BigNumber.from(0)
+  const withdrawn = new Map<string, BigNumber>()
   for (let from = AGENT_FROM_BLOCK; from <= head; from += LOG_SPAN) {
-    const logs = await a.queryFilter(a.filters.Traded(), from, Math.min(from + LOG_SPAN - 1, head))
+    const logs = await p.getLogs({
+      address,
+      topics: [topics],
+      fromBlock: from,
+      toBlock: Math.min(from + LOG_SPAN - 1, head),
+    })
     for (const l of logs) {
-      out.push({
-        block: l.blockNumber,
-        tx: l.transactionHash,
-        tokenIn: getAddress(l.args?.tokenIn),
-        tokenOut: getAddress(l.args?.tokenOut),
-        valueIn: l.args?.valueIn,
-        valueOut: l.args?.valueOut,
-      })
+      const e = a.interface.parseLog(l)
+      if (e.name === 'Traded') {
+        trades.push({
+          block: l.blockNumber,
+          tx: l.transactionHash,
+          tokenIn: getAddress(e.args.tokenIn),
+          tokenOut: getAddress(e.args.tokenOut),
+          valueIn: e.args.valueIn,
+          valueOut: e.args.valueOut,
+        })
+      } else if (e.name === 'Refueled') {
+        refueled = refueled.add(e.args.amount)
+      } else {
+        // address(0) is native CELO, the same balance as CELO's token
+        const t = e.args.token === AddressZero ? getAddress(celo) : getAddress(e.args.token)
+        withdrawn.set(t, (withdrawn.get(t) ?? BigNumber.from(0)).add(e.args.amount))
+      }
     }
   }
-  return out.reverse()
+  return { trades: trades.reverse(), refueled, withdrawn }
 }

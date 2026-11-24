@@ -276,13 +276,21 @@ function Fund({
   const [error, setError] = useState<unknown>(null)
 
   const q = useQuery({
-    queryKey: ['ubeagent', 'fund', owner, held.map((t) => t.address).join()],
+    queryKey: ['ubeagent', 'fund', owner, held.map((t) => t.address).join(), pools.map((x) => x.pool).join()],
     queryFn: async () => {
       const p = agentProvider()
       const factory = new Contract(AGENT_FACTORY, [...FACTORY_ABI], p)
       const numeraire = getAddress(await factory.NUMERAIRE())
       const candidates = [numeraire, getAddress(CELO_TOKEN)]
-      const perMonth: BigNumber[] = await Promise.all(candidates.map((t) => factory.rentPerMonth(t)))
+      // the rent of this selection: a basic one (few exchanges and tokens) pays less
+      const poolAddrs = pools.map((x) => x.pool)
+      const perMonth: BigNumber[] = await Promise.all(candidates.map((t) => factory.rentFor(poolAddrs, t)))
+      const [basic, full, maxDexes, maxTokens]: [BigNumber, BigNumber, number, number] = await Promise.all([
+        factory.basicRentPerMonth(numeraire),
+        factory.rentPerMonth(numeraire),
+        factory.basicMaxDexes(),
+        factory.basicMaxTokens(),
+      ])
       const rentToks = await tokens(p, candidates)
       const rent = candidates
         .map((t, i) => ({ token: rentToks.get(t) as Token, perMonth: perMonth[i] }))
@@ -296,7 +304,8 @@ function Fund({
         )
       )
       const version: BigNumber = await factory.configVersion()
-      return { rent, px, wallet: new Map(held.map((t, i) => [t.address, wallet[i]])), version }
+      const tiers = basic.gt(0) ? { basic, full, maxDexes, maxTokens } : null
+      return { rent, tiers, px, wallet: new Map(held.map((t, i) => [t.address, wallet[i]])), version }
     },
   })
 
@@ -437,6 +446,13 @@ function Fund({
         <Trans>Rent period</Trans>
         {rent && ` (${amount(rent.perMonth, rent.token.decimals)} ${rent.token.symbol}/month)`}
       </ThemedText.SubHeader>
+      {q.data?.tiers && rent && (
+        <ThemedText.BodySmall color="neutral2">
+          Up to {q.data.tiers.maxDexes} exchanges and {q.data.tiers.maxTokens} tokens:{' '}
+          {amount(q.data.tiers.basic, rent.token.decimals)} {rent.token.symbol}/month; more:{' '}
+          {amount(q.data.tiers.full, rent.token.decimals)} {rent.token.symbol}/month.
+        </ThemedText.BodySmall>
+      )}
       <Chips>
         {[1, 3, 6, 12].map((m) => (
           <Chip key={m} $on={months === m} aria-pressed={months === m} onClick={() => setMonths(m)}>

@@ -19,8 +19,8 @@ import { AgentAvatar, formatDate, shortenAddr, StatusBadge } from './components/
 import { TokenPicker } from './components/TokenPicker'
 import { amount, Failure, Note, Page, Panel, TokenLogo, usd } from './components/ui'
 import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './data/abi'
-import { agent, agentUsd, AgentView, prices, Token, trades, universe } from './data/chain'
-import { AGENT_FACTORY, agentProvider, DAY_BLOCKS } from './data/config'
+import { agent, agentUsd, AgentView, history, prices, Token, tokens, universe } from './data/chain'
+import { AGENT_FACTORY, agentProvider, CELO_TOKEN, DAY_BLOCKS } from './data/config'
 import { picked as pickedPools, Selection, selectionOf, withReferences } from './data/selection'
 import { useAgentTx } from './data/useAgentTx'
 import { AgentStatus } from './data/useUserAgents'
@@ -159,6 +159,39 @@ type Run = (label: string, send: () => Promise<TransactionResponse>) => Promise<
 /** What a withdrawal returns: each token the agent holds, as it holds it. */
 type Held = { token: Token; raw: BigNumber; usd: number }
 
+/**
+ * Profit the owner may take out, in USD: the agent's trade results at the contract's own valuation, less the CELO it
+ * paid for gas and what was withdrawn already (both at today's prices). Deposits are plain transfers the contract
+ * doesn't record, so this is the trading result, not "balance minus deposits".
+ */
+function profitOf(
+  net: number,
+  h: { refueled: BigNumber; withdrawn: Map<string, BigNumber> },
+  v: AgentView,
+  px: Map<string, number>
+): number {
+  const celo = getAddress(CELO_TOKEN)
+  const gas = (Number(h.refueled.toString()) / 1e18) * (px.get(celo) ?? 0)
+  let out = 0
+  for (const [t, raw] of h.withdrawn) {
+    const tok = v.tokens.find((x) => x.address === t)
+    if (tok) out += (Number(raw.toString()) / 10 ** tok.decimals) * (px.get(t) ?? 0)
+  }
+  return net - gas - out
+}
+
+/** Takes `usdAmount` from one holding: the numeraire if it covers it, else the largest one. */
+function profitPick(held: Held[], usdAmount: number, numeraire: string): Held | null {
+  if (usdAmount <= 0 || held.length === 0) return null
+  const home = held.find((h) => h.token.address === numeraire && h.usd >= usdAmount)
+  const from = home ?? [...held].sort((a, b) => b.usd - a.usd)[0]
+  if (from.usd <= 0) return null
+  const share = Math.min(1, usdAmount / from.usd)
+  // a share of the raw balance, in 1e6 steps so the BigNumber math stays exact
+  const raw = from.raw.mul(Math.floor(share * 1e6)).div(1e6)
+  return raw.gt(0) ? { token: from.token, raw, usd: from.usd * share } : null
+}
+
 function heldOf(v: AgentView, px: Map<string, number>): Held[] {
   return v.tokens
     .map((token) => {
@@ -192,7 +225,7 @@ function AgentPanel({ address }: { address: string }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [editing, setEditing] = useState(false)
-  const [confirming, setConfirming] = useState(false)
+  const [confirming, setConfirming] = useState<'all' | 'profits' | null>(null)
   /** what the last withdrawal sent to the wallet, as shown when it was confirmed */
   const [received, setReceived] = useState<Held[] | null>(null)
 
@@ -202,8 +235,14 @@ function AgentPanel({ address }: { address: string }) {
     queryFn: async () => {
       const p = agentProvider()
       const v = await agent(p, address)
-      const [px, log, block] = await Promise.all([prices(p, v.tokens), trades(p, address), p.getBlock('latest')])
-      return { v, px, log, head: block.number, now: block.timestamp }
+      const factory = new Contract(AGENT_FACTORY, FACTORY_ABI, p)
+      const [px, h, block, numeraire] = await Promise.all([
+        prices(p, v.tokens),
+        history(p, address, CELO_TOKEN),
+        p.getBlock('latest'),
+        factory.NUMERAIRE(),
+      ])
+      return { v, px, log: h.trades, h, head: block.number, now: block.timestamp, numeraire: getAddress(numeraire) }
     },
   })
 
@@ -239,7 +278,7 @@ function AgentPanel({ address }: { address: string }) {
       </Page>
     )
   }
-  const { v, px, log, head, now } = q.data
+  const { v, px, log, h, head, now, numeraire } = q.data
   const mine = !!account && getAddress(account) === v.owner
   const total = agentUsd(v, px)
   // valueIn/valueOut are the contract's own reference valuation (USD₮, 6 decimals), before gas
@@ -251,6 +290,9 @@ function AgentPanel({ address }: { address: string }) {
   const symbol = (t: string) => v.tokens.find((x) => x.address === t)?.symbol ?? shortenAddr(t)
   const tokenOf = (t: string) => v.tokens.find((x) => x.address === t)
   const held = heldOf(v, px)
+  const profit = profitOf(net(log), h, v, px)
+  // below a cent there is nothing worth a transaction
+  const profitTake = profit >= 0.01 ? profitPick(held, profit, numeraire) : null
 
   return (
     <Page>
@@ -378,7 +420,42 @@ function AgentPanel({ address }: { address: string }) {
           {usd(received.reduce((s, h) => s + h.usd, 0))} at withdrawal).
         </Note>
       )}
-      {mine && confirming && (
+      {mine && confirming === 'profits' && profitTake && (
+        <Panel>
+          <ThemedText.SubHeader>
+            <Trans>You’ll receive</Trans>
+          </ThemedText.SubHeader>
+          <HeldList held={[profitTake]} />
+          <ThemedText.BodySmall color="neutral2">
+            <Trans>
+              Profit is the agent’s trade results since it started, less the gas it paid and what you already took out.
+              The rest stays in the agent and keeps trading.
+            </Trans>
+          </ThemedText.BodySmall>
+          <Actions>
+            <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(null)}>
+              <Trans>Cancel</Trans>
+            </ButtonSecondary>
+            <ButtonPrimary
+              disabled={!!busy}
+              onClick={async () => {
+                const snapshot = [profitTake]
+                if (
+                  await run('Withdraw profits', async () =>
+                    (await contract(address, AGENT_ABI)).withdraw(profitTake.token.address, profitTake.raw)
+                  )
+                ) {
+                  setReceived(snapshot)
+                  setConfirming(null)
+                }
+              }}
+            >
+              {busy === 'Withdraw profits' ? '…' : <Trans>Withdraw profits</Trans>}
+            </ButtonPrimary>
+          </Actions>
+        </Panel>
+      )}
+      {mine && confirming === 'all' && (
         <Panel>
           <ThemedText.SubHeader>
             <Trans>You’ll receive</Trans>
@@ -397,7 +474,7 @@ function AgentPanel({ address }: { address: string }) {
             </Trans>
           </ThemedText.BodySmall>
           <Actions>
-            <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(false)}>
+            <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(null)}>
               <Trans>Cancel</Trans>
             </ButtonSecondary>
             <ButtonPrimary
@@ -406,7 +483,7 @@ function AgentPanel({ address }: { address: string }) {
                 const snapshot = held
                 if (await run('Withdraw all', async () => (await contract(address, AGENT_ABI)).close())) {
                   setReceived(snapshot)
-                  setConfirming(false)
+                  setConfirming(null)
                 }
               }}
             >
@@ -417,6 +494,15 @@ function AgentPanel({ address }: { address: string }) {
       )}
       {mine && !editing && !confirming && (
         <Actions>
+          <ButtonSecondary disabled={!!busy || !profitTake} onClick={() => setConfirming('profits')}>
+            {profitTake ? (
+              <>
+                <Trans>Withdraw profits</Trans> · {usd(profitTake.usd)}
+              </>
+            ) : (
+              <Trans>No profit to withdraw yet</Trans>
+            )}
+          </ButtonSecondary>
           <ButtonSecondary
             disabled={!!busy}
             onClick={() =>
@@ -425,10 +511,13 @@ function AgentPanel({ address }: { address: string }) {
           >
             {busy === 'Pause' || busy === 'Resume' ? '…' : v.paused ? <Trans>Resume</Trans> : <Trans>Pause</Trans>}
           </ButtonSecondary>
-          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming(true)}>
+          <ButtonSecondary disabled={!!busy} onClick={() => setConfirming('all')}>
             <Trans>Withdraw all and close</Trans>
           </ButtonSecondary>
-          <ButtonSecondary disabled={!!busy} onClick={() => run('Extend rent', () => extendRent(address, account))}>
+          <ButtonSecondary
+            disabled={!!busy}
+            onClick={() => run('Extend rent', () => extendRent(address, v.pools, account))}
+          >
             {busy === 'Extend rent' ? '…' : <Trans>Extend rent 1 month</Trans>}
           </ButtonSecondary>
           <ButtonSecondary disabled={!!busy} onClick={() => setEditing(true)}>
@@ -439,10 +528,14 @@ function AgentPanel({ address }: { address: string }) {
       {mine && editing && (
         <EditPools
           current={v.pools}
+          paidUntil={v.paidUntil}
           busy={!!busy}
           done={() => setEditing(false)}
           save={(pools) =>
-            run('Save tokens', async () => (await contract(address, AGENT_ABI)).setPools(pools, v.configVersion))
+            run('Save tokens', async () => {
+              await payWidening(v.pools, pools, v.paidUntil, account)
+              return (await contract(address, AGENT_ABI)).setPools(pools, v.configVersion)
+            })
           }
         />
       )}
@@ -453,13 +546,29 @@ function AgentPanel({ address }: { address: string }) {
     </Page>
   )
 
-  /** One more month of rent in the factory's numeraire: approval first when the allowance is short. */
-  async function extendRent(agentAddr: string, owner: string | undefined): Promise<TransactionResponse> {
+  /** A selection with a higher rent costs the difference for the time already paid: approve it to the factory. */
+  async function payWidening(old: string[], pools: string[], paidUntil: number, owner: string | undefined) {
+    if (!owner) throw new Error('Connect a wallet first.')
+    const reader = new Contract(AGENT_FACTORY, FACTORY_ABI, agentProvider())
+    const due: BigNumber = await reader.selectionCharge(old, pools, paidUntil)
+    if (due.isZero()) return
+    const erc20 = await contract(await reader.NUMERAIRE(), ERC20_ABI)
+    if ((await erc20.allowance(owner, AGENT_FACTORY)).lt(due)) {
+      await settle(await erc20.approve(AGENT_FACTORY, due), 'The approval for the rent difference reverted.')
+    }
+  }
+
+  /** One more month of rent in the factory's numeraire, at the current selection's price: approval first when short. */
+  async function extendRent(
+    agentAddr: string,
+    pools: string[],
+    owner: string | undefined
+  ): Promise<TransactionResponse> {
     if (!owner) throw new Error('Connect a wallet first.')
     const factoryAddr = AGENT_FACTORY
     const reader = new Contract(factoryAddr, FACTORY_ABI, agentProvider())
     const token: string = await reader.NUMERAIRE()
-    const price: BigNumber = await reader.rentPerMonth(token)
+    const price: BigNumber = await reader.rentFor(pools, token)
     const erc20 = await contract(token, ERC20_ABI)
     if ((await erc20.allowance(owner, factoryAddr)).lt(price)) {
       await settle(await erc20.approve(factoryAddr, price), 'The rent approval reverted.')
@@ -470,11 +579,13 @@ function AgentPanel({ address }: { address: string }) {
 
 function EditPools({
   current,
+  paidUntil,
   busy,
   done,
   save,
 }: {
   current: string[]
+  paidUntil: number
   busy: boolean
   done: () => void
   save: (pools: string[]) => Promise<boolean>
@@ -495,6 +606,7 @@ function EditPools({
   return (
     <>
       <TokenPicker all={q.data} sel={s} setSel={setSel} />
+      <SelectionRent current={current} next={chosen.map((p) => p.pool)} paidUntil={paidUntil} />
       <Actions>
         <ButtonSecondary onClick={done}>
           <Trans>Cancel</Trans>
@@ -507,5 +619,31 @@ function EditPools({
         </ButtonPrimary>
       </Actions>
     </>
+  )
+}
+
+/** The new selection's monthly rent and, when it costs more, the difference due for the time already paid. */
+function SelectionRent({ current, next, paidUntil }: { current: string[]; next: string[]; paidUntil: number }) {
+  const q = useQuery({
+    queryKey: ['ubeagent', 'selectionRent', current.join(), next.join(), paidUntil],
+    enabled: next.length > 0,
+    queryFn: async () => {
+      const f = new Contract(AGENT_FACTORY, FACTORY_ABI, agentProvider())
+      const numeraire = getAddress(await f.NUMERAIRE())
+      const [perMonth, due, toks] = await Promise.all([
+        f.rentFor(next, numeraire) as Promise<BigNumber>,
+        f.selectionCharge(current, next, paidUntil) as Promise<BigNumber>,
+        tokens(agentProvider(), [numeraire]),
+      ])
+      return { perMonth, due, token: toks.get(numeraire) as Token }
+    },
+  })
+  if (!q.data) return null
+  const { perMonth, due, token } = q.data
+  return (
+    <Note>
+      Rent for this selection: {amount(perMonth, token.decimals)} {token.symbol}/month.
+      {due.gt(0) && ` Saving costs ${amount(due, token.decimals)} ${token.symbol} for the time already paid.`}
+    </Note>
   )
 }

@@ -4,6 +4,11 @@ export const FACTORY_ABI = [
   'function universe(address) view returns (bool allowed, uint8 kind, uint16 feeBps, address token0, address token1)',
   'function referenceOf(address) view returns (address)',
   'function rentPerMonth(address) view returns (uint256)',
+  'function rentFor(address[] pools, address token) view returns (uint256)',
+  'function basicRentPerMonth(address) view returns (uint256)',
+  'function basicMaxDexes() view returns (uint8)',
+  'function basicMaxTokens() view returns (uint8)',
+  'function selectionCharge(address[] oldPools, address[] newPools, uint64 paidUntil) view returns (uint256)',
   'function configVersion() view returns (uint256)',
   'function latest() view returns (address)',
   'function agentsOf(address user) view returns (address[])',
@@ -29,6 +34,9 @@ export const AGENT_ABI = [
   'function close()',
   'function update(uint256 expectedVersion)',
   'function setPools(address[] pools, uint256 expectedVersion)',
+  'function withdraw(address token, uint256 amount)',
+  'event Refueled(address indexed executor, uint256 amount)',
+  'event Withdrawn(address indexed token, uint256 amount)',
   'event Traded(address indexed pool, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 valueIn, uint256 valueOut)',
 ]
 
