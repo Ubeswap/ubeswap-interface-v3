@@ -11,7 +11,7 @@ import { ArrowUpRight } from 'react-feather'
 import styled from 'styled-components'
 import { ExternalLink, ThemedText } from 'theme/components'
 
-import { CATEGORIES, Counts, DayCounts, loadLast24h, loadTxStats, TxStats } from './data'
+import { CATEGORIES, Counts, DayTotal, loadLast24h, loadTxStats, TxStats } from './data'
 
 const Container = styled.div`
   width: 100%;
@@ -108,16 +108,18 @@ const Number = styled.span<{ $bold?: boolean }>`
   color: ${({ theme }) => theme.neutral1};
 `
 
+// the daily table sits under the 24h card, at the same width
 const SectionHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 480px;
+  width: 100%;
 `
 
-const TableScroll = styled.div`
-  overflow-x: auto;
+const DailyPanel = styled(Panel)`
+  max-width: 480px;
+  width: 100%;
 `
 
 const Table = styled.table`
@@ -183,6 +185,8 @@ const SkeletonCell = styled(LoadingBubble)`
 `
 
 const ErrorPanel = styled(Panel)`
+  max-width: 480px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -205,8 +209,6 @@ const istanbulTime = new Intl.DateTimeFormat('en-GB', {
 const dayLabel = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })
 const formatDay = (date: string) => dayLabel.format(new Date(`${date}T00:00:00Z`))
 const formatCount = (n: number) => n.toLocaleString('en-US')
-
-const COLUMNS: (keyof Counts)[] = ['swap', 'stake', 'farm', 'agents', 'total']
 
 function Summary({ counts }: { counts?: Counts }) {
   const value = (n: number | undefined, bold?: boolean) =>
@@ -236,66 +238,48 @@ function Summary({ counts }: { counts?: Counts }) {
 
 const SKELETON_ROWS = 6
 
-function Daily({ daily }: { daily?: DayCounts[] }) {
+function Daily({ daily }: { daily?: DayTotal[] }) {
   return (
-    <Panel>
-      <TableScroll>
-        <Table>
-          <thead>
-            <tr>
-              <th>
-                <Trans>Date</Trans>
-              </th>
-              <th>
-                <Trans>Swap</Trans>
-              </th>
-              <th>
-                <Trans>Stake</Trans>
-              </th>
-              <th>
-                <Trans>Farm</Trans>
-              </th>
-              <th>
-                <Trans>Agents</Trans>
-              </th>
-              <th>
-                <Trans>Total</Trans>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {daily
-              ? daily.map((day) => (
-                  <tr key={day.date}>
-                    <td>
-                      {formatDay(day.date)}
-                      {day.partial && (
-                        <Partial>
-                          <Trans>today (partial)</Trans>
-                        </Partial>
-                      )}
-                    </td>
-                    {COLUMNS.map((column) => (
-                      <td key={column}>{formatCount(day[column])}</td>
-                    ))}
-                  </tr>
-                ))
-              : Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                  <tr key={i}>
-                    <td>
-                      <SkeletonCell height="18px" width="96px" />
-                    </td>
-                    {COLUMNS.map((column) => (
-                      <td key={column}>
-                        <SkeletonCell height="18px" width="44px" />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-          </tbody>
-        </Table>
-      </TableScroll>
-    </Panel>
+    <DailyPanel>
+      <Table>
+        <thead>
+          <tr>
+            <th>
+              <Trans>Date</Trans>
+            </th>
+            <th>
+              <Trans>Total</Trans>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {daily
+            ? daily.map((day) => (
+                <tr key={day.date}>
+                  <td>
+                    {formatDay(day.date)}
+                    {day.partial && (
+                      <Partial>
+                        <Trans>today (partial)</Trans>
+                      </Partial>
+                    )}
+                  </td>
+                  <td>{formatCount(day.total)}</td>
+                </tr>
+              ))
+            : Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                <tr key={i}>
+                  <td>
+                    <SkeletonCell height="18px" width="96px" />
+                  </td>
+                  <td>
+                    <SkeletonCell height="18px" width="56px" />
+                  </td>
+                </tr>
+              ))}
+        </tbody>
+      </Table>
+    </DailyPanel>
   )
 }
 

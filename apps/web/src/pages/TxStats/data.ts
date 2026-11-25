@@ -3,8 +3,10 @@
  *
  * The page reads stats.json, which the hourly "Tx stats" GitHub Action (.github/scripts/tx-stats.mjs)
  * publishes on the tx-stats-data branch. If that file can't be read, the 24h card is computed in the
- * browser from public, CORS-open endpoints (Blockscout's etherscan-compatible API and the forno RPC);
- * the daily table needs the file.
+ * browser from public, CORS-open endpoints (DexScreener, Blockscout's etherscan-compatible API and the
+ * forno RPC); the daily table needs the file.
+ *
+ * Swap = swap events (DexScreener's buys + sells); total = swap + stake + farm + agents.
  */
 
 export const TX_STATS_URL =
@@ -13,12 +15,17 @@ export const TX_STATS_URL =
 
 export const BLOCKSCOUT_API = 'https://celo.blockscout.com/api'
 export const RPC_URL = 'https://forno.celo.org'
+export const DEXSCREENER_PAIRS_API = 'https://api.dexscreener.com/latest/dex/pairs/celo/'
 
-// Counting rules of the live fallback; keep them equal to the collector's.
-/** Count reverted agent txs too (collector: COUNT_FAILED). */
-export const AGENTS_COUNT_FAILED = false
-/** Total = unique tx hashes across all categories (an agent swap is also a swap). false = plain sum. */
-export const TOTAL_UNIQUE = true
+// Agents = every trade an agent executor sends (reverted included) to the trader contract or to a UbeAgent
+// agent; keep these equal to the collector's.
+const AGENT_TRADER = '0x0169bb608644b63ecff1b46c7aa38c7e8a41f873'
+/** EOAs that send agent trades. A new executor must be added here, or its trades are not counted. */
+const AGENT_EXECUTORS = ['0x373afd7c53cccb9ceff8ceb03b068712db52f2bd']
+/** UbeAgent factories (new, old); AgentCreated(owner indexed, agent indexed, ...): agent = topic 2 */
+const AGENT_FACTORIES = ['0xf36db7351704eefad5ce9c2fe3123356bbf0ecdc', '0x57d69e0ca474b39494ebb2bd86381e21b93134c0']
+const AGENT_CREATED = '0x6cd82bea517dcdb41e7ee71a0a8e02a72964343321d9bbde05d5150f2997c645'
+const AGENT_FACTORIES_BLOCK = 83538000
 
 const V2_FACTORY = '0x62d5b84be28a183abb507e125b384122d2c25fae'
 const V2_PAIR_CREATED = '0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9'
@@ -45,22 +52,22 @@ export const CATEGORIES = [
     key: 'agents',
     label: 'Agents',
     link: 'https://celo.blockscout.com/address/0x0169bB608644B63eCfF1b46C7AA38C7e8A41F873',
-    address: '0x0169bb608644b63ecff1b46c7aa38c7e8a41f873',
   },
 ] as const
 
 export type CategoryKey = (typeof CATEGORIES)[number]['key']
 export type Counts = Record<CategoryKey | 'total', number>
-export interface DayCounts extends Counts {
+export interface DayTotal {
   date: string
   /** true for today, which is still running */
   partial: boolean
+  total: number
 }
 export interface TxStats {
   updatedAt: number
   last24h: Counts
   /** newest first */
-  daily: DayCounts[]
+  daily: DayTotal[]
 }
 
 const LOGS_BLOCK_RANGE = 5000
@@ -71,6 +78,7 @@ const TXLIST_PAGE = 10000
 
 const CACHE_VERSION = 1
 const POOLS_KEY = `txstats:pools:v${CACHE_VERSION}`
+const AGENTS_KEY = `txstats:agents:v${CACHE_VERSION}`
 
 function readCache<T>(key: string): T | undefined {
   try {
@@ -220,14 +228,14 @@ async function blockAt(timestamp: number, head: Head): Promise<number> {
   return found
 }
 
-/** A tx touching Ubeswap: its hash, block and category. */
+/** One counted item: a swap event (tx hash + log index) or a tx to a contract (tx hash). */
 interface Tx {
-  hash: string
+  id: string
   block: number
   category: CategoryKey
 }
 
-async function swapTxs(pools: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
+async function swapEvents(pools: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
   const groups: string[][] = []
   for (let i = 0; i < pools.length; i += LOGS_MAX_ADDRESSES) groups.push(pools.slice(i, i + LOGS_MAX_ADDRESSES))
   const queries: { address: string[]; from: number; to: number }[] = []
@@ -240,8 +248,8 @@ async function swapTxs(pools: string[], fromBlock: number, toBlock: number): Pro
       { address, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}`, topics: [[V2_SWAP, V3_SWAP]] },
     ])
   )
-  return results.flat().map((log: { transactionHash: string; blockNumber: string }) => ({
-    hash: log.transactionHash,
+  return results.flat().map((log: { transactionHash: string; logIndex: string; blockNumber: string }) => ({
+    id: `${log.transactionHash}:${log.logIndex}`,
     block: hexToNumber(log.blockNumber),
     category: 'swap' as const,
   }))
@@ -265,8 +273,8 @@ async function txsTo(category: CategoryKey, address: string, fromBlock: number, 
       })) ?? []
     for (const tx of page) {
       if (tx.to?.toLowerCase() !== address) continue
-      if (category === 'agents' && !AGENTS_COUNT_FAILED && tx.isError !== '0') continue
-      byHash.set(tx.hash, { hash: tx.hash, block: Number(tx.blockNumber), category })
+      if (tx.isError !== '0') continue
+      byHash.set(tx.hash, { id: tx.hash, block: Number(tx.blockNumber), category })
     }
     if (page.length < TXLIST_PAGE) break
     const last = Number(page[page.length - 1].blockNumber)
@@ -276,15 +284,74 @@ async function txsTo(category: CategoryKey, address: string, fromBlock: number, 
   return Array.from(byHash.values())
 }
 
-async function contractTxs(fromBlock: number, toBlock: number): Promise<Tx[]> {
-  const parts = await Promise.all(
-    CATEGORIES.flatMap((c) => ('address' in c ? [txsTo(c.key, c.address, fromBlock, toBlock)] : []))
+/** Every UbeAgent agent, cached and extended with only the blocks since the last visit (forno logs). */
+async function getAgents(head: number): Promise<string[]> {
+  const cached = readCache<{ agents: string[]; lastBlock: number }>(AGENTS_KEY)
+  const agents = new Set(cached?.agents ?? [])
+  const ranges: [number, number][] = []
+  for (let from = cached ? cached.lastBlock + 1 : AGENT_FACTORIES_BLOCK; from <= head; from += LOGS_BLOCK_RANGE) {
+    ranges.push([from, Math.min(from + LOGS_BLOCK_RANGE - 1, head)])
+  }
+  const results = await mapLimit(ranges, RPC_CONCURRENCY, ([from, to]) =>
+    rpc('eth_getLogs', [
+      {
+        address: AGENT_FACTORIES,
+        fromBlock: `0x${from.toString(16)}`,
+        toBlock: `0x${to.toString(16)}`,
+        topics: [AGENT_CREATED],
+      },
+    ])
   )
+  results.flat().forEach((log: { topics: string[] }) => agents.add(`0x${log.topics[2].slice(26)}`))
+  const list = Array.from(agents)
+  writeCache(AGENTS_KEY, { agents: list, lastBlock: head })
+  return list
+}
+
+/** Trades the executors sent to the trader contract or an agent, reverted ones included. */
+async function agentTrades(agents: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
+  const targets = new Set([AGENT_TRADER, ...agents])
+  const trades = new Map<string, Tx>()
+  for (const executor of AGENT_EXECUTORS) {
+    let start = fromBlock
+    for (;;) {
+      const page: { hash: string; from: string; to: string; blockNumber: string }[] =
+        (await blockscout({
+          module: 'account',
+          action: 'txlist',
+          address: executor,
+          startblock: start,
+          endblock: toBlock,
+          sort: 'asc',
+          page: 1,
+          offset: TXLIST_PAGE,
+        })) ?? []
+      for (const tx of page) {
+        if (tx.from?.toLowerCase() !== executor || !targets.has(tx.to?.toLowerCase())) continue
+        trades.set(tx.hash, { id: tx.hash, block: Number(tx.blockNumber), category: 'agents' })
+      }
+      if (page.length < TXLIST_PAGE) break
+      const last = Number(page[page.length - 1].blockNumber)
+      if (last <= start) break
+      start = last
+    }
+  }
+  return Array.from(trades.values())
+}
+
+async function contractTxs(agents: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
+  const parts = await Promise.all([
+    ...CATEGORIES.flatMap((c) => ('address' in c ? [txsTo(c.key, c.address, fromBlock, toBlock)] : [])),
+    agentTrades(agents, fromBlock, toBlock),
+  ])
   return parts.flat()
 }
 
-async function allTxs(pools: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
-  const [swaps, contracts] = await Promise.all([swapTxs(pools, fromBlock, toBlock), contractTxs(fromBlock, toBlock)])
+async function allTxs(pools: string[], agents: string[], fromBlock: number, toBlock: number): Promise<Tx[]> {
+  const [swaps, contracts] = await Promise.all([
+    swapEvents(pools, fromBlock, toBlock),
+    contractTxs(agents, fromBlock, toBlock),
+  ])
   return [...swaps, ...contracts]
 }
 
@@ -295,15 +362,32 @@ function count(txs: Tx[], fromBlock: number, toBlock: number): Counts {
     farm: new Set(),
     agents: new Set(),
   }
-  for (const tx of txs) if (tx.block >= fromBlock && tx.block <= toBlock) sets[tx.category].add(tx.hash)
+  for (const tx of txs) if (tx.block >= fromBlock && tx.block <= toBlock) sets[tx.category].add(tx.id)
   const swap = sets.swap.size
   const stake = sets.stake.size
   const farm = sets.farm.size
   const agents = sets.agents.size
-  const total = TOTAL_UNIQUE
-    ? new Set([...sets.swap, ...sets.stake, ...sets.farm, ...sets.agents]).size
-    : swap + stake + farm + agents
-  return { swap, stake, farm, agents, total }
+  return { swap, stake, farm, agents, total: swap + stake + farm + agents }
+}
+
+/** DexScreener's 24h buys + sells over the pools it tracks, 30 addresses per call. */
+async function dexscreenerSwaps24h(pools: string[]): Promise<number> {
+  const groups: string[][] = []
+  for (let i = 0; i < pools.length; i += 30) groups.push(pools.slice(i, i + 30))
+  const ours = new Set(pools.map((pool) => pool.toLowerCase()))
+  let pairs = 0
+  const sums = await mapLimit(groups, 4, async (group) => {
+    const body = await withRetry('dexscreener', () => fetchJson(DEXSCREENER_PAIRS_API + group.join(',')))
+    let sum = 0
+    for (const pair of body?.pairs ?? []) {
+      if (!ours.has(String(pair.pairAddress).toLowerCase())) continue
+      pairs++
+      sum += (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0)
+    }
+    return sum
+  })
+  if (!pairs) throw new Error('dexscreener returned no pairs')
+  return sums.reduce((a, b) => a + b, 0)
 }
 
 const isCounts = (value: any): value is Counts =>
@@ -313,8 +397,9 @@ const isCounts = (value: any): value is Counts =>
 export async function loadTxStats(): Promise<TxStats> {
   const body = await withRetry('stats.json', () => fetchJson(TX_STATS_URL, { cache: 'no-cache' }))
   const updatedAt = Date.parse(body?.updatedAt)
-  const daily: DayCounts[] = Array.isArray(body?.daily) ? body.daily : []
-  if (!isCounts(body?.last24h) || !Number.isFinite(updatedAt) || !daily.every((d) => isCounts(d) && d.date)) {
+  const daily: DayTotal[] = Array.isArray(body?.daily) ? body.daily : []
+  const isDay = (d: any) => typeof d?.date === 'string' && typeof d.total === 'number'
+  if (!isCounts(body?.last24h) || !Number.isFinite(updatedAt) || !daily.every(isDay)) {
     throw new Error('stats.json has an unexpected shape')
   }
   return { updatedAt, last24h: body.last24h, daily: [...daily].sort((a, b) => b.date.localeCompare(a.date)) }
@@ -324,7 +409,20 @@ export async function loadTxStats(): Promise<TxStats> {
 export async function loadLast24h(): Promise<{ updatedAt: number; counts: Counts }> {
   const latest = await rpc('eth_getBlockByNumber', ['latest', false])
   const head: Head = { number: hexToNumber(latest.number), timestamp: hexToNumber(latest.timestamp) }
-  const [fromBlock, pools] = await Promise.all([blockAt(head.timestamp - 86400, head), getPools(head.number)])
-  const txs = await allTxs(pools, fromBlock, head.number)
-  return { updatedAt: head.timestamp * 1000, counts: count(txs, fromBlock, head.number) }
+  const [fromBlock, pools, agents] = await Promise.all([
+    blockAt(head.timestamp - 86400, head),
+    getPools(head.number),
+    getAgents(head.number),
+  ])
+  const [txs, dexscreenerSwaps] = await Promise.all([
+    allTxs(pools, agents, fromBlock, head.number),
+    // DexScreener's figure is the one the page shows; chain swap events stand in when it fails
+    dexscreenerSwaps24h(pools).catch(() => undefined),
+  ])
+  const counts = count(txs, fromBlock, head.number)
+  if (dexscreenerSwaps !== undefined) {
+    counts.total += dexscreenerSwaps - counts.swap
+    counts.swap = dexscreenerSwaps
+  }
+  return { updatedAt: head.timestamp * 1000, counts }
 }
