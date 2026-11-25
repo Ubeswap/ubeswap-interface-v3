@@ -35,6 +35,7 @@ import { InformationWrapper } from '../../components-old/Stake/Proposals/Proposa
 import StakeCollapseCard from '../../components-old/Stake/StakeCollapseCard'
 import StakeInputField from '../../components-old/Stake/StakeInputField'
 import { ViewProposalModal } from '../../components-old/Stake/ViewProposalModal'
+import { CompoundStaking } from './compound/CompoundStaking'
 import { useRomulus } from './hooks/romulus/useRomulus'
 import { useVotingTokens } from './hooks/romulus/useVotingTokens'
 import { useDoTransaction } from './hooks/useDoTransaction'
@@ -284,6 +285,8 @@ export const NewStake: React.FC = () => {
             <div style={{ margin: '24px 0 16px 0' }}>{button}</div>
           </Wrapper>
         </BodyWrapper>
+
+        <CompoundStaking />
 
         {!(userRewardRate && JSBI.greaterThan(userRewardRate, JSBI.BigInt(0))) && (
           <Text fontSize={20} fontWeight={500} padding="0px 8px">
