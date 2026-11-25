@@ -9,8 +9,8 @@ import { useQuery } from '@tanstack/react-query'
 import { ButtonPrimary } from 'components/Button'
 import { parseUnits } from 'ethers/lib/utils'
 import { Trans } from 'i18n'
-import { useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight } from 'react-feather'
+import { ReactNode, useMemo, useState } from 'react'
+import { ArrowLeft, ArrowRight, BarChart2, Crosshair, Icon, Repeat, Shuffle, Sliders, TrendingUp } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { StyledInternalLink, ThemedText } from 'theme/components'
@@ -91,53 +91,113 @@ const Consent = styled.label`
 `
 
 const Kinds = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
 `
 
 const Kind = styled.button<{ $live?: boolean }>`
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  border: 1px ${({ $live }) => ($live ? 'solid' : 'dashed')}
-    ${({ theme, $live }) => ($live ? theme.accent1 : theme.surface3)};
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid ${({ theme, $live }) => ($live ? theme.accent1 : theme.surface3)};
   background: ${({ theme, $live }) => ($live ? theme.accent2 : theme.surface1)};
-  color: ${({ theme, $live }) => ($live ? theme.neutral1 : theme.neutral3)};
+  color: ${({ theme }) => theme.neutral1};
   font-family: inherit;
   text-align: left;
   cursor: ${({ $live }) => ($live ? 'pointer' : 'default')};
+  transition: transform 125ms ease, box-shadow 125ms ease, border-color 125ms ease;
 
-  span {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  &:hover {
+    ${({ $live }) => $live && 'transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);'}
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.accent1};
+    outline-offset: 2px;
+  }
+`
+
+const KindIcon = styled.div<{ $live?: boolean }>`
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: ${({ theme, $live }) => ($live ? theme.accent1 : theme.surface2)};
+  color: ${({ theme, $live }) => ($live ? theme.white : theme.neutral2)};
+`
+
+const KindText = styled.span<{ $live?: boolean }>`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  opacity: ${({ $live }) => ($live ? 1 : 0.7)};
+
+  strong {
     font-size: 16px;
     font-weight: 535;
   }
   small {
     font-size: 13px;
     font-weight: 485;
+    line-height: 18px;
     color: ${({ theme }) => theme.neutral2};
-  }
-  em {
-    margin-left: auto;
-    padding: 2px 10px;
-    border-radius: 999px;
-    background: ${({ theme }) => theme.surface3};
-    color: ${({ theme }) => theme.neutral2};
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 535;
-    white-space: nowrap;
   }
 `
 
-/** Agent kinds coming later: listed, not selectable. */
-const COMING_SOON = ['Prices', 'Wallets', 'Daily notes', 'Trade', 'Travel', 'Sell', 'Hire', 'Research']
+const KindBadge = styled.em`
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.surface3};
+  color: ${({ theme }) => theme.neutral2};
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 535;
+  white-space: nowrap;
+`
+
+/** The agent kinds; only the arbitrage agent can be opened today, the rest are listed as coming soon. */
+const KINDS: { name: ReactNode; about: ReactNode; Icon: Icon; live?: boolean }[] = [
+  {
+    name: <Trans>Arbitrage Agent</Trans>,
+    about: <Trans>Buys where an asset is cheaper and sells where it is dearer.</Trans>,
+    Icon: Shuffle,
+    live: true,
+  },
+  {
+    name: <Trans>Yield Agent</Trans>,
+    about: <Trans>Keeps idle stablecoins where they earn the most, within your limits.</Trans>,
+    Icon: TrendingUp,
+  },
+  {
+    name: <Trans>LP Rebalancer Agent</Trans>,
+    about: <Trans>Keeps a liquidity position in range as prices move.</Trans>,
+    Icon: Crosshair,
+  },
+  {
+    name: <Trans>Volume Agent</Trans>,
+    about: <Trans>Splits a large buy or sell into small orders over time.</Trans>,
+    Icon: BarChart2,
+  },
+  {
+    name: <Trans>Trade Agent</Trans>,
+    about: <Trans>Buys and sells on the rules you set, under a spending cap.</Trans>,
+    Icon: Sliders,
+  },
+  {
+    name: <Trans>Market Maker Agent</Trans>,
+    about: <Trans>Quotes both sides of a market and earns the spread.</Trans>,
+    Icon: Repeat,
+  },
+]
 
 /** What a wallet balance of `t` is worth in USD (0 when unpriced). */
 function walletUsd(t: Token, raw: BigNumber | undefined, px: Map<string, number>): number {
@@ -192,21 +252,28 @@ export default function CreateAgent() {
           <Trans>Choose what your agent does.</Trans>
         </ThemedText.BodySecondary>
         <Kinds>
-          <Kind $live onClick={() => setStep('pools')}>
-            <span>
-              <Trans>Arbitrage agent</Trans>
-              <small>
-                <Trans>Trades price gaps between pools for you.</Trans>
-              </small>
-            </span>
-            <ArrowRight size={20} style={{ marginLeft: 'auto' }} />
-          </Kind>
-          {COMING_SOON.map((k) => (
-            <Kind key={k} disabled aria-disabled="true">
-              <span>{k}</span>
-              <em>
-                <Trans>Coming soon</Trans>
-              </em>
+          {KINDS.map(({ name, about, Icon, live }, i) => (
+            <Kind
+              key={i}
+              $live={live}
+              disabled={!live}
+              aria-disabled={!live}
+              onClick={live ? () => setStep('pools') : undefined}
+            >
+              <KindIcon $live={live}>
+                <Icon size={22} />
+              </KindIcon>
+              <KindText $live={live}>
+                <strong>{name}</strong>
+                <small>{about}</small>
+              </KindText>
+              {live ? (
+                <ArrowRight size={20} style={{ flexShrink: 0, alignSelf: 'center' }} />
+              ) : (
+                <KindBadge>
+                  <Trans>Soon</Trans>
+                </KindBadge>
+              )}
             </Kind>
           ))}
         </Kinds>
@@ -227,7 +294,7 @@ export default function CreateAgent() {
         <Trans>Agent types</Trans>
       </BackButton>
       <ThemedText.HeadlineMedium>
-        <Trans>Arbitrage agent</Trans>
+        <Trans>Arbitrage Agent</Trans>
       </ThemedText.HeadlineMedium>
       <ThemedText.BodySecondary>
         <Trans>
