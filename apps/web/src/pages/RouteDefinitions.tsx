@@ -50,6 +50,7 @@ const UbeAgent = lazy(() => import('pages/UbeAgent'))
 const CreateAgent = lazy(() => import('pages/UbeAgent/CreateAgent'))
 const FarmV3 = lazy(() => import('pages/FarmV3'))
 const Debug = lazy(() => import('pages/Debug'))
+const TxStats = lazy(() => import('pages/TxStats'))
 const Governance = lazy(() => import('pages/Governance'))
 const ProposalDetails = lazy(() => import('pages/Governance/ProposalDetails'))
 
@@ -427,6 +428,11 @@ export const routes: RouteDefinition[] = [
     path: '/ubeagent/create',
     getTitle: () => 'Create New Agent',
     getElement: () => <CreateAgent />,
+  }),
+  createRouteDefinition({
+    path: '/stats',
+    getTitle: () => t`Ubeswap on-chain activity`,
+    getElement: () => <TxStats />,
   }),
   createRouteDefinition({
     path: '/debug',
