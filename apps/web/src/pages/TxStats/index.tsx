@@ -237,6 +237,8 @@ function Summary({ counts }: { counts?: Counts }) {
 }
 
 const SKELETON_ROWS = 6
+/** Set true to show the daily totals since 17 Nov (the collector already writes them into stats.json). */
+const SHOW_DAILY_TABLE = false
 
 function Daily({ daily }: { daily?: DayTotal[] }) {
   return (
@@ -355,21 +357,31 @@ export default function TxStatsPage() {
           <Summary counts={stats?.last24h ?? live?.counts} />
         )}
 
-        <SectionHeader>
-          <ThemedText.SubHeaderLarge>
-            <Trans>Daily transactions</Trans>
-          </ThemedText.SubHeaderLarge>
-          <ThemedText.BodySmall color="neutral2">
-            <Trans>Times in UTC+3</Trans>
-            {updatedAt !== undefined && (
-              <>
-                {' · '}
-                <Trans>Updated {istanbulTime.format(updatedAt)} (UTC+3)</Trans>
-              </>
-            )}
-          </ThemedText.BodySmall>
-        </SectionHeader>
-        {statsError ? <LoadError message={statsError} onRetry={load} /> : <Daily daily={stats?.daily} />}
+        {SHOW_DAILY_TABLE ? (
+          <>
+            <SectionHeader>
+              <ThemedText.SubHeaderLarge>
+                <Trans>Daily transactions</Trans>
+              </ThemedText.SubHeaderLarge>
+              <ThemedText.BodySmall color="neutral2">
+                <Trans>Times in UTC+3</Trans>
+                {updatedAt !== undefined && (
+                  <>
+                    {' · '}
+                    <Trans>Updated {istanbulTime.format(updatedAt)} (UTC+3)</Trans>
+                  </>
+                )}
+              </ThemedText.BodySmall>
+            </SectionHeader>
+            {statsError ? <LoadError message={statsError} onRetry={load} /> : <Daily daily={stats?.daily} />}
+          </>
+        ) : (
+          updatedAt !== undefined && (
+            <ThemedText.BodySmall color="neutral2">
+              <Trans>Updated {istanbulTime.format(updatedAt)} (UTC+3)</Trans>
+            </ThemedText.BodySmall>
+          )
+        )}
       </Inner>
     </Container>
   )
