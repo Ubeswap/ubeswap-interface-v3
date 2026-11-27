@@ -35,7 +35,9 @@ import { InformationWrapper } from '../../components-old/Stake/Proposals/Proposa
 import StakeCollapseCard from '../../components-old/Stake/StakeCollapseCard'
 import StakeInputField from '../../components-old/Stake/StakeInputField'
 import { ViewProposalModal } from '../../components-old/Stake/ViewProposalModal'
+import { AgentStakeBox } from './compound/AgentStakeBox'
 import { CompoundStaking } from './compound/CompoundStaking'
+import { useCompoundState } from './compound/useCompound'
 import { useRomulus } from './hooks/romulus/useRomulus'
 import { useVotingTokens } from './hooks/romulus/useVotingTokens'
 import { useDoTransaction } from './hooks/useDoTransaction'
@@ -83,6 +85,8 @@ export const NewStake: React.FC = () => {
   const ubeBalance = useTokenBalance(account ?? undefined, ube)
   const contract = useContract<VotableStakingRewards>(VOTABLE_STAKING_REWARDS_ADDRESS, VOTABLE_STAKING_ABI, true)
   const doTransaction = useDoTransaction()
+  // an account with a Stake Agent stakes and unstakes through it; others keep the direct UBE Stake box
+  const compound = useCompoundState()
 
   const crank = useCallback(
     async (delegateIdx: DelegateIdx) => {
@@ -229,62 +233,66 @@ export const NewStake: React.FC = () => {
   return (
     <>
       <TopSection gap="lg" justify="center">
-        <BodyWrapper>
-          <CurrencyLogo
-            currency={ube}
-            size="42px"
-            style={{ position: 'absolute', top: '30px', right: 'calc(50% + 112px)' }}
-          />
-          <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>UBE Stake</h2>
-          <div style={{ margin: '10px 0 0 6px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: '100px' }}>
-              <StyledButtonRadio active={staking} onClick={() => setStaking(true)}>
-                {t('Stake')}
-              </StyledButtonRadio>
+        {compound.data?.agent ? (
+          <AgentStakeBox state={compound.data} refetch={compound.refetch} />
+        ) : (
+          <BodyWrapper>
+            <CurrencyLogo
+              currency={ube}
+              size="42px"
+              style={{ position: 'absolute', top: '30px', right: 'calc(50% + 112px)' }}
+            />
+            <h2 style={{ textAlign: 'center', margin: '15px 0px 15px 6px' }}>UBE Stake</h2>
+            <div style={{ margin: '10px 0 0 6px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '100px' }}>
+                <StyledButtonRadio active={staking} onClick={() => setStaking(true)}>
+                  {t('Stake')}
+                </StyledButtonRadio>
+              </div>
+              <div style={{ width: '100px' }}>
+                <StyledButtonRadio active={!staking} onClick={() => setStaking(false)}>
+                  {t('Unstake')}
+                </StyledButtonRadio>
+              </div>
             </div>
-            <div style={{ width: '100px' }}>
-              <StyledButtonRadio active={!staking} onClick={() => setStaking(false)}>
-                {t('Unstake')}
-              </StyledButtonRadio>
-            </div>
-          </div>
 
-          <Wrapper>
-            <div style={{ margin: '24px 0' }}>
-              <StakeInputField
-                id="stake-currency"
-                value={amount}
-                onUserInput={setAmount}
-                onMax={() => {
-                  if (staking) {
-                    ubeBalance && setAmount(ubeBalance.toSignificant(18))
-                  } else {
-                    stakeBalance && setAmount(stakeBalance.toSignificant(18))
-                  }
-                }}
-                currency={ube}
-                stakeBalance={stakeBalance}
-                walletBalance={ubeBalance}
-              />
-            </div>
-            {userRewardRate && JSBI.greaterThan(userRewardRate, JSBI.BigInt(0)) && (
-              <InformationWrapper style={{ margin: '0px 8px 0px 8px' }}>
-                <Text fontWeight={500} fontSize={16}>
-                  {t('Unclaimed Rewards')}
-                </Text>
-                <div style={{ display: 'flex' }}>
-                  <ButtonEmpty padding="0 8px" borderRadius="8px" width="fit-content" onClick={onClaimClick}>
-                    {t('Claim')}
-                  </ButtonEmpty>
+            <Wrapper>
+              <div style={{ margin: '24px 0' }}>
+                <StakeInputField
+                  id="stake-currency"
+                  value={amount}
+                  onUserInput={setAmount}
+                  onMax={() => {
+                    if (staking) {
+                      ubeBalance && setAmount(ubeBalance.toSignificant(18))
+                    } else {
+                      stakeBalance && setAmount(stakeBalance.toSignificant(18))
+                    }
+                  }}
+                  currency={ube}
+                  stakeBalance={stakeBalance}
+                  walletBalance={ubeBalance}
+                />
+              </div>
+              {userRewardRate && JSBI.greaterThan(userRewardRate, JSBI.BigInt(0)) && (
+                <InformationWrapper style={{ margin: '0px 8px 0px 8px' }}>
                   <Text fontWeight={500} fontSize={16}>
-                    {userRewardRate && earned ? earned.toFixed(4, { groupSeparator: ',' }) : '--'}
+                    {t('Unclaimed Rewards')}
                   </Text>
-                </div>
-              </InformationWrapper>
-            )}
-            <div style={{ margin: '24px 0 16px 0' }}>{button}</div>
-          </Wrapper>
-        </BodyWrapper>
+                  <div style={{ display: 'flex' }}>
+                    <ButtonEmpty padding="0 8px" borderRadius="8px" width="fit-content" onClick={onClaimClick}>
+                      {t('Claim')}
+                    </ButtonEmpty>
+                    <Text fontWeight={500} fontSize={16}>
+                      {userRewardRate && earned ? earned.toFixed(4, { groupSeparator: ',' }) : '--'}
+                    </Text>
+                  </div>
+                </InformationWrapper>
+              )}
+              <div style={{ margin: '24px 0 16px 0' }}>{button}</div>
+            </Wrapper>
+          </BodyWrapper>
+        )}
 
         <CompoundStaking />
 

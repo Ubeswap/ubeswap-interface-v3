@@ -12,9 +12,9 @@ import { useState } from 'react'
 import styled from 'styled-components'
 import { shortenAddress } from 'utilities/src/addresses'
 
-import { AGENT_ABI, ERC20_ABI, FACTORY_ABI } from './abi'
-import { COMPOUND_FACTORY, INTERVALS, UBE_TOKEN, VOTES } from './config'
-import { CompoundState, useCompoundState, useCompoundTx } from './useCompound'
+import { AGENT_ABI, FACTORY_ABI, STAKING_ABI } from './abi'
+import { COMPOUND_FACTORY, INTERVALS, UBE_STAKE, VOTES } from './config'
+import { CompoundState, useCompoundState, useCompoundTx, useUbePermit } from './useCompound'
 
 const YEAR = 365 * 86400
 
@@ -290,6 +290,7 @@ export function CompoundStaking() {
   const [, toggleAccountDrawer] = useAccountDrawer()
   const { data: state, refetch } = useCompoundState()
   const send = useCompoundTx()
+  const signPermit = useUbePermit()
   const [amount, setAmount] = useState('')
   const [freq, setFreq] = useState(0)
   const [withdrawAmount, setWithdrawAmount] = useState('')
@@ -469,38 +470,59 @@ export function CompoundStaking() {
     )
   }
 
-  // set-up: no agent yet, or an agent with nothing staked
-  const value = parse(amount)
+  // set-up: no agent yet, or an agent with nothing staked. Most users already stake in UBE Stake directly: they move
+  // all of it (stake + its reward + wallet) in two steps, (1) exit UBE Stake, (2) sign a permit and deploy the agent.
+  const direct = state ? state.directStaked : BigNumber.from(0)
+  const movable = state ? state.balance.add(state.directStaked).add(state.directEarned) : BigNumber.from(0)
+  const value = amount === '' && movable.gt(0) ? movable : parse(amount)
   const stake = value ?? BigNumber.from(0)
-  const approved = !!value && !!state && state.allowance.gte(value)
-  const insufficient = !!value && !!state && value.gt(state.balance)
+  const insufficient = !!value && !!state && value.gt(movable)
   const c = state ? cadence(state, stake, freq, false) : undefined
   const iv = INTERVALS[freq]
+  const hasDirect = direct.gt(0)
 
   const setUp = () =>
     run('setup', async () => {
       if (!value || !state) return
-      if (state.allowance.lt(value)) {
-        setBusy('approve')
-        await send(UBE_TOKEN, ERC20_ABI, 'approve', [factory, value], 'Approve UBE for Compound Staking')
+      let amountToStake = value
+      if (hasDirect) {
+        setBusy('unstake')
+        await send(UBE_STAKE, STAKING_ABI, 'exit', [], 'Unstake from UBE Stake')
+        // the reward in "everything" was an estimate: stake what actually arrived
+        const after = (await refetch()).data?.balance ?? state.balance
+        amountToStake = value.gte(movable) || value.gt(after) ? after : value
       }
+      setBusy('sign')
+      const p = await signPermit(amountToStake, state.now)
       setBusy('create')
       if (agent) {
         if (agent.intervalIdx !== freq) {
           await send(agent.address, AGENT_ABI, 'setInterval', [freq], `Set compound interval to ${iv.label}`)
         }
-        await send(factory, FACTORY_ABI, 'deposit', [value], `Stake ${fmt(value)} UBE in your compound agent`)
+        await send(
+          factory,
+          FACTORY_ABI,
+          'depositWithPermit',
+          [amountToStake, p.deadline, p.v, p.r, p.s],
+          `Stake ${fmt(amountToStake)} UBE in your stake agent`
+        )
       } else {
-        await send(factory, FACTORY_ABI, 'createAgent', [freq, value], `Set up Compound Staking with ${fmt(value)} UBE`)
+        await send(
+          factory,
+          FACTORY_ABI,
+          'createAgentWithPermit',
+          [freq, amountToStake, p.deadline, p.v, p.r, p.s],
+          `Deploy stake agent with ${fmt(amountToStake)} UBE`
+        )
       }
       setAmount('')
     })
 
-  let label = approved ? 'Set Up Compound Staking' : 'Approve & Set Up Compound Staking'
-  if (agent) label = approved ? 'Stake in Compound Agent' : 'Approve & Stake in Compound Agent'
+  let label = agent ? 'Stake in Stake Agent' : 'Deploy Stake Agent'
   if (insufficient) label = 'Insufficient UBE balance'
-  if (busy === 'approve') label = 'Approving UBE…'
-  if (busy === 'create') label = agent ? 'Staking…' : 'Creating agent & staking…'
+  if (busy === 'unstake') label = 'Unstaking from UBE Stake…'
+  if (busy === 'sign') label = 'Sign the UBE permit in your wallet…'
+  if (busy === 'create') label = agent ? 'Staking…' : 'Deploying agent & staking…'
 
   return (
     <Card>
@@ -512,18 +534,18 @@ export function CompoundStaking() {
 
       <AmountBox>
         <AmountTop>
-          <span>Amount</span>
-          <span>Balance: {state ? fmt(state.balance) : '–'}</span>
+          <span>{hasDirect ? 'Amount (wallet + UBE Stake)' : 'Amount'}</span>
+          <span>Available: {state ? fmt(movable) : '–'}</span>
         </AmountTop>
         <InputRow>
           <input
-            value={amount}
+            value={amount === '' && movable.gt(0) ? formatUnits(movable, 18) : amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
             placeholder="0.0"
             aria-label="UBE amount for Compound Staking"
           />
-          <Max type="button" onClick={() => state && setAmount(formatUnits(state.balance, 18))}>
+          <Max type="button" onClick={() => setAmount('')}>
             MAX
           </Max>
         </InputRow>
@@ -567,15 +589,17 @@ export function CompoundStaking() {
       )}
 
       <Steps>
-        <Step done={approved} active={busy === 'approve'}>
-          <span>{approved ? '✓' : '1'}</span>
-          <span>Approve UBE</span>
-          <span>{approved ? 'Approved' : ''}</span>
-        </Step>
-        <Step done={false} active={busy === 'create'}>
-          <span>2</span>
-          <span>{agent ? 'Stake in your agent' : 'Create agent & stake'}</span>
-          <span />
+        {hasDirect && (
+          <Step done={false} active={busy === 'unstake'}>
+            <span>1</span>
+            <span>Unstake from UBE Stake</span>
+            <span>{fmt(direct)} UBE + reward</span>
+          </Step>
+        )}
+        <Step done={false} active={busy === 'sign' || busy === 'create'}>
+          <span>{hasDirect ? '2' : '1'}</span>
+          <span>{agent ? 'Sign & stake in your agent' : 'Sign & deploy agent & stake'}</span>
+          <span>no approve needed</span>
         </Step>
       </Steps>
 

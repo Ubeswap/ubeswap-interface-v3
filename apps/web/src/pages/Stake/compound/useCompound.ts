@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber'
+import { splitSignature } from '@ethersproject/bytes'
 import { Contract } from '@ethersproject/contracts'
 import { useQuery } from '@tanstack/react-query'
 import { useWeb3React } from '@web3-react/core'
@@ -40,6 +41,9 @@ export type CompoundState = {
   now: number
   balance: BigNumber
   allowance: BigNumber
+  /** UBE the account stakes in UBE Stake itself (the old way), and its unclaimed reward there */
+  directStaked: BigNumber
+  directEarned: BigNumber
   /** UBE Stake's reward rate per second, 0 once its period has ended */
   rewardRate: BigNumber
   totalStaked: BigNumber
@@ -54,7 +58,19 @@ async function load(account: string, factoryAddress: string): Promise<CompoundSt
   const staking = new Contract(UBE_STAKE, STAKING_ABI, provider)
   const factory = new Contract(factoryAddress, FACTORY_ABI, provider)
 
-  const [block, gasPrice, balance, allowance, agentAddress, rate, total, finish, gasUnitsCap] = await Promise.all([
+  const [
+    block,
+    gasPrice,
+    balance,
+    allowance,
+    agentAddress,
+    rate,
+    total,
+    finish,
+    gasUnitsCap,
+    directStaked,
+    directEarned,
+  ] = await Promise.all([
     provider.getBlock('latest'),
     provider.getGasPrice(),
     ube.balanceOf(account) as Promise<BigNumber>,
@@ -64,6 +80,8 @@ async function load(account: string, factoryAddress: string): Promise<CompoundSt
     staking.totalSupply() as Promise<BigNumber>,
     staking.periodFinish() as Promise<BigNumber>,
     factory.gasUnitsCap() as Promise<BigNumber>,
+    staking.balanceOf(account) as Promise<BigNumber>,
+    staking.earned(account) as Promise<BigNumber>,
   ])
   const feeCap: BigNumber = await factory.feeCapUBE(gasPrice)
   const now = Math.max(block.timestamp, Math.floor(Date.now() / 1000))
@@ -71,6 +89,8 @@ async function load(account: string, factoryAddress: string): Promise<CompoundSt
     now,
     balance,
     allowance,
+    directStaked,
+    directEarned,
     rewardRate: finish.gt(block.timestamp) ? rate : BigNumber.from(0),
     totalStaked: total,
     turnNeedsUBE: feeCap.mul(COMPOUND_GAS).div(gasUnitsCap).mul(REWARD_TO_FEE),
@@ -143,5 +163,36 @@ export function useCompoundTx() {
       return receipt
     },
     [provider, account, chainId, selectChain, addTransaction]
+  )
+}
+
+/**
+ * Signs a UBE permit for the factory (EIP-712; UBE's domain has name, chainId and verifyingContract, no version), so
+ * staking through the agent needs a signature instead of an approve transaction.
+ */
+export function useUbePermit() {
+  const { provider, account } = useWeb3React()
+  return useCallback(
+    async (amount: BigNumber, now: number) => {
+      if (!provider || !account || !COMPOUND_FACTORY) throw new Error('Connect a wallet first.')
+      const nonce: BigNumber = await new Contract(UBE_TOKEN, ERC20_ABI, compoundProvider()).nonces(account)
+      const deadline = now + 3600
+      const signature = await provider.getSigner(account)._signTypedData(
+        { name: 'Ubeswap', chainId: COMPOUND_CHAIN, verifyingContract: UBE_TOKEN },
+        {
+          Permit: [
+            { name: 'owner', type: 'address' },
+            { name: 'spender', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'nonce', type: 'uint256' },
+            { name: 'deadline', type: 'uint256' },
+          ],
+        },
+        { owner: account, spender: COMPOUND_FACTORY, value: amount, nonce, deadline }
+      )
+      const { v, r, s } = splitSignature(signature)
+      return { deadline, v, r, s }
+    },
+    [provider, account]
   )
 }

@@ -3,6 +3,7 @@ export const ERC20_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function allowance(address owner, address spender) view returns (uint256)',
   'function approve(address spender, uint256 amount) returns (bool)',
+  'function nonces(address) view returns (uint256)',
 ]
 
 export const STAKING_ABI = [
@@ -10,12 +11,16 @@ export const STAKING_ABI = [
   'function totalSupply() view returns (uint256)',
   'function periodFinish() view returns (uint256)',
   'function userDelegateIdx(address) view returns (uint8)',
+  'function balanceOf(address) view returns (uint256)',
+  'function earned(address) view returns (uint256)',
+  'function exit()',
 ]
 
 export const FACTORY_ABI = [
   'function agentOf(address user) view returns (address)',
-  'function createAgent(uint8 intervalIdx, uint256 amount) returns (address)',
-  'function deposit(uint256 amount)',
+  'function createAgentWithPermit(uint8 intervalIdx, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) returns (address)',
+  'function depositWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)',
+  'function predictAgent(address user) view returns (address)',
   'function feeCapUBE(uint256 gasPrice) view returns (uint256)',
   'function gasUnitsCap() view returns (uint256)',
 ]
